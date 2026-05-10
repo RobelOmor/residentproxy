@@ -17,6 +17,7 @@ import { Route as AppProxyRouteImport } from './routes/app.proxy'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
+import { Route as AppAdminOrdersRouteImport } from './routes/app.admin.orders'
 import { Route as AppAdminConfigRouteImport } from './routes/app.admin.config'
 
 const AuthRoute = AuthRouteImport.update({
@@ -59,6 +60,11 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminOrdersRoute = AppAdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminConfigRoute = AppAdminConfigRouteImport.update({
   id: '/config',
   path: '/config',
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/app/proxy': typeof AppProxyRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
+  '/app/admin/orders': typeof AppAdminOrdersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/app/proxy': typeof AppProxyRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
+  '/app/admin/orders': typeof AppAdminOrdersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/app/proxy': typeof AppProxyRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
+  '/app/admin/orders': typeof AppAdminOrdersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/app/proxy'
     | '/app/settings'
     | '/app/admin/config'
+    | '/app/admin/orders'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/app/proxy'
     | '/app/settings'
     | '/app/admin/config'
+    | '/app/admin/orders'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/app/proxy'
     | '/app/settings'
     | '/app/admin/config'
+    | '/app/admin/orders'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -199,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin/orders': {
+      id: '/app/admin/orders'
+      path: '/orders'
+      fullPath: '/app/admin/orders'
+      preLoaderRoute: typeof AppAdminOrdersRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/app/admin/config': {
       id: '/app/admin/config'
       path: '/config'
@@ -211,10 +230,12 @@ declare module '@tanstack/react-router' {
 
 interface AppAdminRouteChildren {
   AppAdminConfigRoute: typeof AppAdminConfigRoute
+  AppAdminOrdersRoute: typeof AppAdminOrdersRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminConfigRoute: AppAdminConfigRoute,
+  AppAdminOrdersRoute: AppAdminOrdersRoute,
 }
 
 const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
