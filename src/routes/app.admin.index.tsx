@@ -7,7 +7,7 @@ import { adminGetConfig, adminListOrders } from "@/lib/admin.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/app/admin")({
+export const Route = createFileRoute("/app/admin/")({
   component: AdminDashboard,
 });
 
