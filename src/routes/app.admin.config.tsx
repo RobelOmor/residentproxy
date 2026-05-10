@@ -98,11 +98,11 @@ function AdminConfig() {
               ✅ Connected — Enterprise Balance: <span className="font-bold">{flowGB} GB</span>
             </div>
           ) : null}
-          {balance?.error && (
+          {balance?.error ? (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
               {String(balance.error)}
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
