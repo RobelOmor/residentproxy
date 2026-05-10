@@ -1,21 +1,56 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { refreshMyOrdersUsage } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: UserDashboard,
 });
 
+const GB = 1024 * 1024 * 1024;
+const MB = 1024 * 1024;
+
+function formatTraffic(bytes: number): string {
+  if (!isFinite(bytes) || bytes < 0) return "0 MB";
+  if (bytes >= GB) return `${(bytes / GB).toFixed(2)} GB`;
+  return `${(bytes / MB).toFixed(1)} MB`;
+}
+
+function parseExpire(expire: string | null, approvedAt: string | null): { date: Date | null; daysLeft: number | null } {
+  let date: Date | null = null;
+  if (expire) {
+    // 711 returns either a unix timestamp (seconds) string or ISO date
+    const num = Number(expire);
+    if (!Number.isNaN(num) && num > 0) {
+      date = new Date(num * (num < 1e12 ? 1000 : 1));
+    } else {
+      const d = new Date(expire);
+      if (!Number.isNaN(d.getTime())) date = d;
+    }
+  }
+  if (!date && approvedAt) {
+    const d = new Date(approvedAt);
+    d.setDate(d.getDate() + 30);
+    date = d;
+  }
+  if (!date) return { date: null, daysLeft: null };
+  const ms = date.getTime() - Date.now();
+  const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
+  return { date, daysLeft: days };
+}
+
 function UserDashboard() {
   const { user, role } = useAuth();
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (role === "admin") navigate({ to: "/app/admin" });
@@ -34,6 +69,15 @@ function UserDashboard() {
     },
   });
 
+  const refreshMut = useMutation({
+    mutationFn: () => refreshMyOrdersUsage(),
+    onSuccess: (r) => {
+      toast.success(`Refreshed ${r.refreshed} proxy${r.refreshed === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const approved = (orders ?? []).filter((o) => o.status === "approved");
   const totalGB = approved.reduce((s, o) => s + o.gb_amount, 0);
 
@@ -44,7 +88,17 @@ function UserDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <Button
+          variant="outline"
+          onClick={() => refreshMut.mutate()}
+          disabled={refreshMut.isPending || approved.length === 0}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${refreshMut.isPending ? "animate-spin" : ""}`} />
+          Refresh Usage
+        </Button>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -64,46 +118,84 @@ function UserDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>My Proxies</CardTitle>
-          <CardDescription>All approved proxies with credentials</CardDescription>
+          <CardDescription>Usage and validity (30 days from approval). Click Refresh to update from 711proxy.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {approved.length === 0 && (
             <p className="text-sm text-muted-foreground">No proxies yet. Buy one from the Residential Proxy page.</p>
           )}
-          {approved.map((o) => (
-            <div key={o.id} className="border rounded-lg p-4 space-y-2 bg-card">
-              <div className="flex items-center justify-between">
-                <Badge>{o.gb_amount} GB</Badge>
-                <span className="text-xs text-muted-foreground">Order: {o.order_no}</span>
+          {approved.map((o) => {
+            const totalBytes = o.gb_amount * GB;
+            const remainingBytes = o.un_flow ? Number(o.un_flow) : totalBytes;
+            const usedBytes =
+              o.un_flow_used != null
+                ? Number(o.un_flow_used)
+                : Math.max(0, totalBytes - remainingBytes);
+            const usedPct = totalBytes > 0 ? Math.min(100, (usedBytes / totalBytes) * 100) : 0;
+            const { date: expireDate, daysLeft } = parseExpire(o.expire, o.approved_at);
+
+            return (
+              <div key={o.id} className="border rounded-lg p-4 space-y-3 bg-card">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <Badge>{o.gb_amount} GB</Badge>
+                  <span className="text-xs text-muted-foreground">Order: {o.order_no}</span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Used: <span className="font-semibold text-foreground">{formatTraffic(usedBytes)}</span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Remaining: <span className="font-semibold text-foreground">{formatTraffic(remainingBytes)}</span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Total: <span className="font-semibold text-foreground">{formatTraffic(totalBytes)}</span>
+                    </span>
+                  </div>
+                  <Progress value={usedPct} />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{usedPct.toFixed(1)}% used</span>
+                    <span>
+                      {daysLeft !== null
+                        ? daysLeft > 0
+                          ? `Expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`
+                          : "Expired"
+                        : "Validity: 30 days"}
+                      {expireDate ? ` · ${expireDate.toLocaleDateString()}` : ""}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2 text-sm font-mono pt-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Host:</span>
+                    <span>{o.host}:{o.port}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Proto:</span>
+                    <span>{o.proto}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">User:</span>
+                    <span>{o.proxy_username}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Pass:</span>
+                    <span>{o.proxy_passwd}</span>
+                  </div>
+                </div>
+                {o.un && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <code className="flex-1 bg-muted rounded px-2 py-1 text-xs break-all">{o.un}</code>
+                    <Button size="icon" variant="outline" onClick={() => copy(o.un!)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="grid gap-2 sm:grid-cols-2 text-sm font-mono">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Host:</span>
-                  <span>{o.host}:{o.port}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Proto:</span>
-                  <span>{o.proto}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">User:</span>
-                  <span>{o.proxy_username}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Pass:</span>
-                  <span>{o.proxy_passwd}</span>
-                </div>
-              </div>
-              {o.un && (
-                <div className="flex items-center gap-2 pt-2">
-                  <code className="flex-1 bg-muted rounded px-2 py-1 text-xs break-all">{o.un}</code>
-                  <Button size="icon" variant="outline" onClick={() => copy(o.un!)}>
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     </div>
