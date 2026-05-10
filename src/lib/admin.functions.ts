@@ -1,12 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const BASE = "https://server.711proxy.com/eapi";
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
 type JsonRecord = { [k: string]: JsonValue };
+
+type SbClient = ReturnType<typeof createClient<Database>>;
 
 async function fetch711Token(username: string, passwd: string): Promise<string> {
   const res = await fetch(`${BASE}/token/`, {
@@ -28,7 +31,6 @@ async function fetch711Balance(token: string): Promise<JsonRecord> {
     headers: { Authorization: `Bearer ${token}` },
   });
   const json = (await res.json()) as JsonRecord;
-  // Unwrap results wrapper if present
   if (json && typeof json === "object" && json.results && typeof json.results === "object" && !Array.isArray(json.results)) {
     return { ...(json.results as JsonRecord), _code: (json.code as JsonValue) ?? null, _message: (json.message as JsonValue) ?? null };
   }
@@ -48,8 +50,8 @@ async function create711Order(token: string, gb: number): Promise<JsonRecord> {
   return (await res.json()) as JsonRecord;
 }
 
-async function assertAdmin(userId: string) {
-  const { data, error } = await supabaseAdmin
+async function assertAdmin(supabase: SbClient, userId: string) {
+  const { data, error } = await supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
@@ -63,12 +65,14 @@ async function assertAdmin(userId: string) {
 export const adminGetConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.userId);
-    const { data: config } = await supabaseAdmin
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
+    const { data: config, error } = await supabase
       .from("app_config")
       .select("*")
       .eq("id", 1)
-      .single();
+      .maybeSingle();
+    if (error) throw new Error(error.message);
     let balance: JsonRecord | null = null;
     if (config?.proxy_username && config?.proxy_passwd) {
       try {
@@ -96,15 +100,15 @@ export const adminSaveConfig = createServerFn({ method: "POST" })
   )
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
-    const { error } = await supabaseAdmin
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
+    const { error } = await supabase
       .from("app_config")
       .update({ ...data, updated_at: new Date().toISOString() })
       .eq("id", 1);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
-
 
 // --- Admin: test 711 credentials without saving ---
 export const adminTest711 = createServerFn({ method: "POST" })
@@ -113,7 +117,8 @@ export const adminTest711 = createServerFn({ method: "POST" })
   )
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
     try {
       const token = await fetch711Token(data.username, data.passwd);
       const balance = await fetch711Balance(token);
@@ -123,13 +128,19 @@ export const adminTest711 = createServerFn({ method: "POST" })
     }
   });
 
-// --- Public: get pricing ---
+// --- Public: get pricing (anon-readable via separate client) ---
 export const getPublicPricing = createServerFn({ method: "GET" }).handler(async () => {
-  const { data } = await supabaseAdmin
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return null;
+  const sb = createClient<Database>(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data } = await sb
     .from("app_config")
     .select("price_per_gb_usdt, usdt_address, usdt_network")
     .eq("id", 1)
-    .single();
+    .maybeSingle();
   return data;
 });
 
@@ -137,12 +148,14 @@ export const getPublicPricing = createServerFn({ method: "GET" }).handler(async 
 export const adminListOrders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.userId);
-    const { data: orders } = await supabaseAdmin
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
+    const { data: orders, error } = await supabase
       .from("proxy_orders")
       .select("*")
       .order("created_at", { ascending: false });
-    const { data: profiles } = await supabaseAdmin.from("profiles").select("id, email, display_name");
+    if (error) throw new Error(error.message);
+    const { data: profiles } = await supabase.from("profiles").select("id, email, display_name");
     const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
     return {
       orders: (orders ?? []).map((o) => ({
@@ -157,21 +170,23 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ orderId: z.string().uuid() }).parse(input))
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
 
-    const { data: order, error: oerr } = await supabaseAdmin
+    const { data: order, error: oerr } = await supabase
       .from("proxy_orders")
       .select("*")
       .eq("id", data.orderId)
-      .single();
-    if (oerr || !order) throw new Error("Order not found");
+      .maybeSingle();
+    if (oerr) throw new Error(oerr.message);
+    if (!order) throw new Error("Order not found");
     if (order.status !== "pending") throw new Error(`Order already ${order.status}`);
 
-    const { data: config } = await supabaseAdmin
+    const { data: config } = await supabase
       .from("app_config")
       .select("proxy_username, proxy_passwd")
       .eq("id", 1)
-      .single();
+      .maybeSingle();
     if (!config?.proxy_username || !config?.proxy_passwd) {
       throw new Error("711proxy credentials not configured. Configure in admin Config page first.");
     }
@@ -183,20 +198,24 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
       throw new Error(`711proxy order failed: ${apiRes.msg ?? apiRes.error ?? JSON.stringify(apiRes)}`);
     }
 
-    const { error: uerr } = await supabaseAdmin
+    const results = (apiRes.results && typeof apiRes.results === "object" && !Array.isArray(apiRes.results)
+      ? (apiRes.results as JsonRecord)
+      : apiRes) as JsonRecord;
+
+    const { error: uerr } = await supabase
       .from("proxy_orders")
       .update({
         status: "approved",
         approved_at: new Date().toISOString(),
-        order_no: (apiRes.order_no as string) ?? null,
-        proxy_username: (apiRes.username as string) ?? null,
-        proxy_passwd: (apiRes.passwd as string) ?? null,
-        host: (apiRes.host as string) ?? null,
-        port: (apiRes.port as string) ?? null,
-        proto: (apiRes.proto as string) ?? null,
-        un: (apiRes.un as string) ?? null,
-        expire: (apiRes.expire as string) ?? null,
-        un_flow: (apiRes.un_flow as string) ?? null,
+        order_no: (results.order_no as string) ?? null,
+        proxy_username: (results.username as string) ?? null,
+        proxy_passwd: (results.passwd as string) ?? null,
+        host: (results.host as string) ?? null,
+        port: (results.port as string) ?? null,
+        proto: (results.proto as string) ?? null,
+        un: (results.un as string) ?? null,
+        expire: (results.expire as string) ?? null,
+        un_flow: (results.un_flow as string) ?? null,
         api_response: apiRes as never,
       })
       .eq("id", order.id);
@@ -212,8 +231,9 @@ export const adminRejectOrder = createServerFn({ method: "POST" })
   )
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.userId);
-    const { error } = await supabaseAdmin
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
+    const { error } = await supabase
       .from("proxy_orders")
       .update({ status: "rejected", admin_note: data.note ?? null })
       .eq("id", data.orderId)
