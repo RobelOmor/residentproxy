@@ -103,6 +103,8 @@ export const adminSaveConfig = createServerFn({ method: "POST" })
       .eq("id", 1);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
 
 // --- Admin: test 711 credentials without saving ---
 export const adminTest711 = createServerFn({ method: "POST" })
