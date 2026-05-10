@@ -85,6 +85,7 @@ export type Database = {
           tx_hash: string | null
           un: string | null
           un_flow: string | null
+          un_flow_used: string | null
           user_id: string
         }
         Insert: {
@@ -106,6 +107,7 @@ export type Database = {
           tx_hash?: string | null
           un?: string | null
           un_flow?: string | null
+          un_flow_used?: string | null
           user_id: string
         }
         Update: {
@@ -127,6 +129,7 @@ export type Database = {
           tx_hash?: string | null
           un?: string | null
           un_flow?: string | null
+          un_flow_used?: string | null
           user_id?: string
         }
         Relationships: []
@@ -157,6 +160,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_711_credentials: {
+        Args: never
+        Returns: {
+          passwd: string
+          username: string
+        }[]
+      }
       get_public_pricing: {
         Args: never
         Returns: {
