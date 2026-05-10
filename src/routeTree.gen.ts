@@ -17,6 +17,7 @@ import { Route as AppProxyRouteImport } from './routes/app.proxy'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppAdminIndexRouteImport } from './routes/app.admin.index'
+import { Route as AppAdminSubusersRouteImport } from './routes/app.admin.subusers'
 import { Route as AppAdminOrdersRouteImport } from './routes/app.admin.orders'
 import { Route as AppAdminConfigRouteImport } from './routes/app.admin.config'
 
@@ -60,6 +61,11 @@ const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminSubusersRoute = AppAdminSubusersRouteImport.update({
+  id: '/admin/subusers',
+  path: '/admin/subusers',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminOrdersRoute = AppAdminOrdersRouteImport.update({
   id: '/admin/orders',
   path: '/admin/orders',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
+  '/app/admin/subusers': typeof AppAdminSubusersRoute
   '/app/admin/': typeof AppAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
+  '/app/admin/subusers': typeof AppAdminSubusersRoute
   '/app/admin': typeof AppAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
+  '/app/admin/subusers': typeof AppAdminSubusersRoute
   '/app/admin/': typeof AppAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/admin/config'
     | '/app/admin/orders'
+    | '/app/admin/subusers'
     | '/app/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/admin/config'
     | '/app/admin/orders'
+    | '/app/admin/subusers'
     | '/app/admin'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/admin/config'
     | '/app/admin/orders'
+    | '/app/admin/subusers'
     | '/app/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -211,6 +223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin/subusers': {
+      id: '/app/admin/subusers'
+      path: '/admin/subusers'
+      fullPath: '/app/admin/subusers'
+      preLoaderRoute: typeof AppAdminSubusersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/admin/orders': {
       id: '/app/admin/orders'
       path: '/admin/orders'
@@ -235,6 +254,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppAdminConfigRoute: typeof AppAdminConfigRoute
   AppAdminOrdersRoute: typeof AppAdminOrdersRoute
+  AppAdminSubusersRoute: typeof AppAdminSubusersRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
 }
 
@@ -245,6 +265,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppAdminConfigRoute: AppAdminConfigRoute,
   AppAdminOrdersRoute: AppAdminOrdersRoute,
+  AppAdminSubusersRoute: AppAdminSubusersRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
 }
 

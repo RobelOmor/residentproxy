@@ -174,91 +174,18 @@ export const adminListOrders = createServerFn({ method: "POST" })
     };
   });
 
-// --- Admin: approve order (calls 711 API, saves credentials) ---
+// --- Admin: approve order — assigns a pre-created sub-user from the pool ---
 export const adminApproveOrder = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ orderId: z.string().uuid() }).parse(input))
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
     const supabase = context.supabase as unknown as SbClient;
-    await assertAdmin(supabase, context.userId);
-
-    const { data: order, error: oerr } = await supabase
-      .from("proxy_orders")
-      .select("*")
-      .eq("id", data.orderId)
-      .maybeSingle();
-    if (oerr) throw new Error(oerr.message);
-    if (!order) throw new Error("Order not found");
-    if (order.status !== "pending") throw new Error(`Order already ${order.status}`);
-
-    const { data: config } = await supabase
-      .from("app_config")
-      .select("proxy_username, proxy_passwd")
-      .eq("id", 1)
-      .maybeSingle();
-    if (!config?.proxy_username || !config?.proxy_passwd) {
-      throw new Error("711proxy credentials not configured. Configure in admin Config page first.");
-    }
-
-    const token = await fetch711Token(config.proxy_username, config.proxy_passwd);
-
-    // Convert GB to bytes (supports fractional, min 1 byte)
-    const flowBytes = BigInt(
-      Math.max(1, Math.round(Number(order.gb_amount) * 1024 * 1024 * 1024)),
-    ).toString();
-
-    // 30-day validity window from approval (unix seconds for 711 API)
-    const expireMs = Date.now() + 30 * 24 * 60 * 60 * 1000;
-    const expireUnixSec = Math.floor(expireMs / 1000).toString();
-
-    const apiRes = await create711Order(token, flowBytes, expireUnixSec);
-
-    const code = apiRes.code as number | undefined;
-    const isOk = code === 200 || code === 0;
-    if (!isOk) {
-      throw new Error(
-        `711proxy create order failed: ${apiRes.msg ?? apiRes.message ?? apiRes.error ?? JSON.stringify(apiRes)}`,
-      );
-    }
-
-    const r = (apiRes.results ?? apiRes) as JsonRecord;
-    const username = (r.username as string) ?? "";
-    const passwd = (r.passwd as string) ?? "";
-    const host = (r.host as string) ?? "global.rotgb.711proxy.com";
-    const port = (r.port as string) ?? "10000";
-    const proto = (r.proto as string) ?? "http";
-    const orderNo = (r.order_no as string) ?? username;
-    const un = (r.un as string) ?? `${username}:${passwd}@${host}:${port}`;
-    const apiExpire = (r.expire as string) ?? expireUnixSec;
-    const unFlow = (r.un_flow as string) ?? flowBytes;
-
-    if (!username || !passwd) {
-      throw new Error(
-        `711proxy returned incomplete credentials: ${JSON.stringify(apiRes).slice(0, 300)}`,
-      );
-    }
-
-    const { error: uerr } = await supabase
-      .from("proxy_orders")
-      .update({
-        status: "approved",
-        approved_at: new Date().toISOString(),
-        order_no: orderNo,
-        proxy_username: username,
-        proxy_passwd: passwd,
-        host,
-        port,
-        proto,
-        un,
-        expire: apiExpire,
-        un_flow: unFlow,
-        un_flow_used: "0",
-        api_response: apiRes as never,
-      })
-      .eq("id", order.id);
-    if (uerr) throw new Error(uerr.message);
-
-    return { ok: true, username };
+    const { data: res, error } = await supabase.rpc(
+      "admin_assign_sub_user_to_order" as never,
+      { _order_id: data.orderId } as never,
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true, result: res };
   });
 
 // --- User: refresh own orders' usage from 711proxy live API ---
