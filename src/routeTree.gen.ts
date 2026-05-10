@@ -17,6 +17,7 @@ import { Route as AppProxyRouteImport } from './routes/app.proxy'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
+import { Route as AppAdminConfigRouteImport } from './routes/app.admin.config'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -58,37 +59,45 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminConfigRoute = AppAdminConfigRouteImport.update({
+  id: '/config',
+  path: '/config',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
-  '/app/admin': typeof AppAdminRoute
+  '/app/admin': typeof AppAdminRouteWithChildren
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/proxy': typeof AppProxyRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/admin/config': typeof AppAdminConfigRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
-  '/app/admin': typeof AppAdminRoute
+  '/app/admin': typeof AppAdminRouteWithChildren
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/proxy': typeof AppProxyRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/admin/config': typeof AppAdminConfigRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
-  '/app/admin': typeof AppAdminRoute
+  '/app/admin': typeof AppAdminRouteWithChildren
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/proxy': typeof AppProxyRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/admin/config': typeof AppAdminConfigRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/proxy'
     | '/app/settings'
+    | '/app/admin/config'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/proxy'
     | '/app/settings'
+    | '/app/admin/config'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/proxy'
     | '/app/settings'
+    | '/app/admin/config'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -187,11 +199,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin/config': {
+      id: '/app/admin/config'
+      path: '/config'
+      fullPath: '/app/admin/config'
+      preLoaderRoute: typeof AppAdminConfigRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
   }
 }
 
+interface AppAdminRouteChildren {
+  AppAdminConfigRoute: typeof AppAdminConfigRoute
+}
+
+const AppAdminRouteChildren: AppAdminRouteChildren = {
+  AppAdminConfigRoute: AppAdminConfigRoute,
+}
+
+const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
+  AppAdminRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppAdminRoute: typeof AppAdminRoute
+  AppAdminRoute: typeof AppAdminRouteWithChildren
   AppBillingRoute: typeof AppBillingRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppProxyRoute: typeof AppProxyRoute
@@ -199,7 +230,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAdminRoute: AppAdminRoute,
+  AppAdminRoute: AppAdminRouteWithChildren,
   AppBillingRoute: AppBillingRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppProxyRoute: AppProxyRoute,
