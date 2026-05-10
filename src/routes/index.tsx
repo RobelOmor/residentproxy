@@ -22,7 +22,7 @@ function Index() {
   const [username, setUsername] = useState("");
   const [passwd, setPasswd] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ status: number; ok: boolean; body: unknown } | null>(null);
+  const [result, setResult] = useState<{ status: number; ok: boolean; body: Record<string, unknown> } | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

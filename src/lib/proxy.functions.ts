@@ -16,9 +16,9 @@ export const getProxyToken = createServerFn({ method: "POST" })
         body: JSON.stringify(data),
       });
       const text = await res.text();
-      let json: unknown = null;
+      let json: Record<string, unknown>;
       try {
-        json = JSON.parse(text);
+        json = JSON.parse(text) as Record<string, unknown>;
       } catch {
         json = { raw: text };
       }
