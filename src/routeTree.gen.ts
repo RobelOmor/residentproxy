@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppProxyRouteImport } from './routes/app.proxy'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppProxyRoute = AppProxyRouteImport.update({
   id: '/proxy',
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/proxy': typeof AppProxyRoute
+  '/app/settings': typeof AppSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/proxy': typeof AppProxyRoute
+  '/app/settings': typeof AppSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/app/billing': typeof AppBillingRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/proxy': typeof AppProxyRoute
+  '/app/settings': typeof AppSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,8 +90,16 @@ export interface FileRouteTypes {
     | '/app/billing'
     | '/app/dashboard'
     | '/app/proxy'
+    | '/app/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app' | '/auth' | '/app/billing' | '/app/dashboard' | '/app/proxy'
+  to:
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/app/billing'
+    | '/app/dashboard'
+    | '/app/proxy'
+    | '/app/settings'
   id:
     | '__root__'
     | '/'
@@ -91,6 +108,7 @@ export interface FileRouteTypes {
     | '/app/billing'
     | '/app/dashboard'
     | '/app/proxy'
+    | '/app/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -122,6 +140,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/proxy': {
       id: '/app/proxy'
       path: '/proxy'
@@ -150,12 +175,14 @@ interface AppRouteChildren {
   AppBillingRoute: typeof AppBillingRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppProxyRoute: typeof AppProxyRoute
+  AppSettingsRoute: typeof AppSettingsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppBillingRoute: AppBillingRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppProxyRoute: AppProxyRoute,
+  AppSettingsRoute: AppSettingsRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
