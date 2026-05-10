@@ -252,6 +252,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _rand_lc: { Args: { n: number }; Returns: string }
+      admin_approve_order_manual: {
+        Args: {
+          _expire: string
+          _order_id: string
+          _order_no: string
+          _passwd: string
+          _suname: string
+          _un_flow: string
+          _un_flow_used: string
+        }
+        Returns: undefined
+      }
       admin_approve_topup: { Args: { _topup_id: string }; Returns: undefined }
       admin_assign_sub_user_to_order: {
         Args: { _order_id: string }

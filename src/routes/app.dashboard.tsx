@@ -158,8 +158,12 @@ function UserDashboard() {
   });
 
   const approvedAll = (orders ?? []).filter((o) => o.status === "approved");
-  const active = approvedAll.filter((o) => !getExpiry(o.approved_at).expired);
-  const expired = approvedAll.filter((o) => getExpiry(o.approved_at).expired);
+  const isQuotaExhausted = (o: OrderRow) => {
+    if (o.un_flow == null) return false;
+    try { return BigInt(o.un_flow) <= 0n; } catch { return false; }
+  };
+  const active = approvedAll.filter((o) => !getExpiry(o.approved_at).expired && !isQuotaExhausted(o));
+  const expired = approvedAll.filter((o) => getExpiry(o.approved_at).expired || isQuotaExhausted(o));
   const totalGB = approvedAll.reduce((s, o) => s + Number(o.gb_amount), 0);
 
   // tick every second so countdown updates live
