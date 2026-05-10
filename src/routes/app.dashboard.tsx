@@ -127,7 +127,7 @@ function UserDashboard() {
                 ? Number(o.un_flow_used)
                 : Math.max(0, totalBytes - remainingBytes);
             const usedPct = totalBytes > 0 ? Math.min(100, (usedBytes / totalBytes) * 100) : 0;
-            const { date: expireDate, daysLeft } = parseExpire(o.expire, o.approved_at);
+            const { date: expireDate, label: expireLabel } = getExpiry(o.approved_at);
 
             return (
               <div key={o.id} className="border rounded-lg p-4 space-y-3 bg-card">
@@ -152,20 +152,20 @@ function UserDashboard() {
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{usedPct.toFixed(1)}% used</span>
                     <span>
-                      {daysLeft !== null
-                        ? daysLeft > 0
-                          ? `Expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`
-                          : "Expired"
-                        : "Validity: 30 days"}
+                      {expireLabel}
                       {expireDate ? ` · ${expireDate.toLocaleDateString()}` : ""}
                     </span>
                   </div>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2 text-sm font-mono pt-1">
+                <div className="grid gap-2 sm:grid-cols-3 text-sm font-mono pt-1">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Host:</span>
-                    <span>{o.host}:{o.port}</span>
+                    <span>{o.host}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Port:</span>
+                    <span>{o.port}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Proto:</span>
