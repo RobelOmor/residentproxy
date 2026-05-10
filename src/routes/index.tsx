@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { getProxyToken } from "@/lib/proxy.functions";
+import { getProxyToken, type JsonValue } from "@/lib/proxy.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ function Index() {
   const [username, setUsername] = useState("");
   const [passwd, setPasswd] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ status: number; ok: boolean; body: Record<string, unknown> } | null>(null);
+  const [result, setResult] = useState<{ status: number; ok: boolean; body: JsonValue } | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
