@@ -157,6 +157,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_pricing: {
+        Args: never
+        Returns: {
+          price_per_gb_usdt: number
+          usdt_address: string
+          usdt_network: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
