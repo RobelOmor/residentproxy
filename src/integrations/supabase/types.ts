@@ -182,6 +182,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_my_order_usage: {
+        Args: {
+          _expire: string
+          _order_id: string
+          _un_flow: string
+          _un_flow_used: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"
