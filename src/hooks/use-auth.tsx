@@ -24,6 +24,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Inject Supabase access token into server-function fetch calls
+    if (typeof window !== "undefined" && !(window as unknown as { __sbFetchPatched?: boolean }).__sbFetchPatched) {
+      const orig = window.fetch.bind(window);
+      window.fetch = async (input, init) => {
+        try {
+          const url = typeof input === "string" ? input : input instanceof Request ? input.url : (input as URL).toString();
+          const isServerFn = url.includes("/_serverFn/") || url.includes("/_server");
+          if (isServerFn) {
+            const { data } = await supabase.auth.getSession();
+            const token = data.session?.access_token;
+            if (token) {
+              const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+              if (!headers.has("authorization")) headers.set("authorization", `Bearer ${token}`);
+              return orig(input, { ...init, headers });
+            }
+          }
+        } catch {
+          // ignore and fall through
+        }
+        return orig(input, init);
+      };
+      (window as unknown as { __sbFetchPatched?: boolean }).__sbFetchPatched = true;
+    }
+
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       setUser(sess?.user ?? null);
