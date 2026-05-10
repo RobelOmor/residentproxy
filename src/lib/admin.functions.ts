@@ -188,68 +188,16 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
     return { ok: true, result: res };
   });
 
-// --- User: refresh own orders' usage from 711proxy live API ---
+// --- User: refresh own orders' usage from sub-user pool (admin-maintained) ---
+// Note: 711proxy EAPI has no public per-sub-user usage endpoint, so admins
+// enter mb_used into the pool from the 711 dashboard; this RPC propagates it.
 export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const supabase = context.supabase as unknown as SbClient;
-
-    const { data: orders, error: oerr } = await supabase
-      .from("proxy_orders")
-      .select("id, order_no")
-      .eq("user_id", context.userId)
-      .eq("status", "approved");
-    if (oerr) throw new Error(oerr.message);
-    if (!orders || orders.length === 0) return { ok: true, refreshed: 0 };
-
-    // Get 711 enterprise creds via SECURITY DEFINER RPC
-    const { data: credsRow, error: cerr } = await supabase.rpc("get_711_credentials" as never);
-    if (cerr) throw new Error(cerr.message);
-    const creds = Array.isArray(credsRow) ? credsRow[0] : credsRow;
-    const username = (creds as { username?: string } | null)?.username;
-    const passwd = (creds as { passwd?: string } | null)?.passwd;
-    if (!username || !passwd) throw new Error("711proxy credentials not configured");
-
-    const token = await fetch711Token(username, passwd);
-
-    let refreshed = 0;
-    for (const o of orders) {
-      if (!o.order_no) continue;
-      try {
-        // Query order status by order_no
-        const res = await fetch(
-          `${BASE}/order/?order_no=${encodeURIComponent(o.order_no)}`,
-          { method: "GET", headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = (await res.json()) as JsonRecord;
-        const results = json.results;
-        const r: JsonRecord =
-          results && typeof results === "object" && !Array.isArray(results)
-            ? (results as JsonRecord)
-            : Array.isArray(results) && results.length > 0
-              ? (results[0] as JsonRecord)
-              : json;
-
-        const flowTop = r.un_flow ?? null;
-        const flowUsed = r.un_flow_used ?? null;
-        const expire = r.expire ?? null;
-        const { error: uerr } = await supabase.rpc("update_my_order_usage" as never, {
-          _order_id: o.id,
-          _un_flow: flowTop != null ? String(flowTop) : null,
-          _un_flow_used: flowUsed != null ? String(flowUsed) : null,
-          _expire: expire != null ? String(expire) : null,
-        } as never);
-        if (uerr) {
-          console.error("update_my_order_usage failed", o.order_no, uerr.message);
-          continue;
-        }
-        refreshed++;
-      } catch (e) {
-        console.error("refresh order failed", o.order_no, e);
-      }
-    }
-
-    return { ok: true, refreshed };
+    const { data, error } = await supabase.rpc("sync_my_orders_usage_from_pool" as never);
+    if (error) throw new Error(error.message);
+    return { ok: true, refreshed: Number(data ?? 0) };
   });
 
 // --- Admin: reject order (auto-refunds balance if paid from balance) ---

@@ -146,6 +146,7 @@ export type Database = {
           host: string
           id: string
           mb_capacity: number
+          mb_used: number
           note: string | null
           passwd: string
           port: string
@@ -160,6 +161,7 @@ export type Database = {
           host?: string
           id?: string
           mb_capacity: number
+          mb_used?: number
           note?: string | null
           passwd: string
           port?: string
@@ -174,6 +176,7 @@ export type Database = {
           host?: string
           id?: string
           mb_capacity?: number
+          mb_used?: number
           note?: string | null
           passwd?: string
           port?: string
@@ -262,6 +265,10 @@ export type Database = {
         Args: { _note?: string; _topup_id: string }
         Returns: undefined
       }
+      admin_update_pool_usage: {
+        Args: { _mb_used: number; _pool_id: string }
+        Returns: undefined
+      }
       get_711_credentials: {
         Args: never
         Returns: {
@@ -288,6 +295,7 @@ export type Database = {
         Args: { _cost: number; _gb: number }
         Returns: string
       }
+      sync_my_orders_usage_from_pool: { Args: never; Returns: number }
       update_my_order_usage: {
         Args: {
           _expire: string
