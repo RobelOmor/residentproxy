@@ -37,18 +37,46 @@ async function fetch711Balance(token: string): Promise<JsonRecord> {
   return json;
 }
 
-async function create711Order(token: string, gb: number): Promise<JsonRecord> {
-  // Support fractional GB (e.g. 0.001 GB ≈ 1 MB). Convert to whole bytes.
-  const flowBytes = BigInt(Math.max(1, Math.round(gb * 1024 * 1024 * 1024))).toString();
-  const res = await fetch(`${BASE}/order/`, {
+// Generate sub-username: "rs" + 10 lowercase alphanumeric chars (total 12)
+function generateSubUsername(): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "rs";
+  for (let i = 0; i < 10; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function generateSubPassword(): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "";
+  for (let i = 0; i < 12; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+// Create sub-user on 711proxy enterprise account with traffic cap.
+// Does NOT deduct enterprise USDT balance — only allocates from existing pool.
+async function create711SubUser(
+  token: string,
+  suname: string,
+  passwd: string,
+  flowBytes: string,
+): Promise<JsonRecord> {
+  const res = await fetch(`${BASE}/auth/sub_users/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ flow: flowBytes }),
+    body: JSON.stringify({
+      suname,
+      passwd,
+      traff_flow_top: flowBytes,
+      activate: true,
+    }),
   });
-  return (await res.json()) as JsonRecord;
+  const text = await res.text();
+  let json: JsonRecord;
+  try { json = JSON.parse(text) as JsonRecord; } catch { json = { raw: text }; }
+  return { ...json, _http_status: res.status };
 }
 
 async function assertAdmin(supabase: SbClient, userId: string) {
