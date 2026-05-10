@@ -24,27 +24,22 @@ function formatTraffic(bytes: number): string {
   return `${(bytes / MB).toFixed(1)} MB`;
 }
 
-function parseExpire(expire: string | null, approvedAt: string | null): { date: Date | null; daysLeft: number | null } {
-  let date: Date | null = null;
-  if (expire) {
-    // 711 returns either a unix timestamp (seconds) string or ISO date
-    const num = Number(expire);
-    if (!Number.isNaN(num) && num > 0) {
-      date = new Date(num * (num < 1e12 ? 1000 : 1));
-    } else {
-      const d = new Date(expire);
-      if (!Number.isNaN(d.getTime())) date = d;
-    }
-  }
-  if (!date && approvedAt) {
-    const d = new Date(approvedAt);
-    d.setDate(d.getDate() + 30);
-    date = d;
-  }
-  if (!date) return { date: null, daysLeft: null };
+function getExpiry(approvedAt: string | null): { date: Date | null; label: string } {
+  if (!approvedAt) return { date: null, label: "Validity: 30 days" };
+  const date = new Date(approvedAt);
+  date.setDate(date.getDate() + 30);
   const ms = date.getTime() - Date.now();
-  const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
-  return { date, daysLeft: days };
+  if (ms <= 0) return { date, label: "Expired" };
+  const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+  const label =
+    days > 0
+      ? `Expires in ${days}d ${hours}h ${minutes}m ${seconds}s`
+      : `Expires in ${hours}h ${minutes}m ${seconds}s`;
+  return { date, label };
 }
 
 function UserDashboard() {
