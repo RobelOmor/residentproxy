@@ -128,54 +128,102 @@ function AdminOrders() {
       <h1 className="text-3xl font-bold">Orders</h1>
 
       <Card>
-        <CardHeader><CardTitle>Pending ({pending.length})</CardTitle></CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>GB</TableHead>
-                <TableHead>Cost</TableHead>
-                <TableHead>TX Hash</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pending.map((o) => (
-                <TableRow key={o.id}>
-                  <TableCell>{o.user_email}</TableCell>
-                  <TableCell><Badge>{Number(o.gb_amount) >= 1 ? `${Number(o.gb_amount).toFixed(2)} GB` : `${Math.round(Number(o.gb_amount) * 1024)} MB`}</Badge></TableCell>
-                  <TableCell>${Number(o.cost_usdt).toFixed(2)}</TableCell>
-                  <TableCell className="font-mono text-xs max-w-[200px] truncate">
-                    {o.tx_hash}
-                    {o.tx_hash && (
-                      <a
-                        href={`https://tronscan.org/#/transaction/${o.tx_hash}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-block ml-1"
-                      >
-                        <ExternalLink className="h-3 w-3 inline" />
-                      </a>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs">{new Date(o.created_at).toLocaleString()}</TableCell>
-                  <TableCell className="text-right space-x-1">
-                    <Button size="sm" disabled={busyId === o.id} onClick={() => handleApprove(o.id)}>
-                      <Check className="h-4 w-4 mr-1" /> {busyId === o.id ? "..." : "Approve"}
-                    </Button>
-                    <Button size="sm" variant="destructive" disabled={busyId === o.id} onClick={() => handleReject(o.id)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!pending.length && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No pending orders</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <CardHeader>
+          <CardTitle>Pending ({pending.length})</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Copy the suggested User / Pass / MB-limit, manually create the sub-user on{" "}
+            <a href="https://711proxy.com" target="_blank" rel="noreferrer" className="underline">
+              711proxy
+            </a>{" "}
+            dashboard, then paste back the 711 Order No and click Approve. Server will verify on 711proxy API.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {pending.map((o) => {
+            const mbLimit = Math.round(Number(o.gb_amount) * 1024);
+            const sizeLabel =
+              Number(o.gb_amount) >= 1
+                ? `${Number(o.gb_amount).toFixed(2)} GB`
+                : `${mbLimit} MB`;
+            return (
+              <div key={o.id} className="border rounded-lg p-4 space-y-3 bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="space-y-1">
+                    <div className="font-medium">{o.user_email}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(o.created_at).toLocaleString()} · ${Number(o.cost_usdt).toFixed(2)} ·{" "}
+                      <span className="font-mono">{o.tx_hash}</span>
+                      {o.tx_hash && o.tx_hash !== "BALANCE" && (
+                        <a
+                          href={`https://tronscan.org/#/transaction/${o.tx_hash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-block ml-1"
+                        >
+                          <ExternalLink className="h-3 w-3 inline" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <Badge>{sizeLabel}</Badge>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3 text-sm">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Suggested User</Label>
+                    <div className="flex items-center gap-1">
+                      <code className="flex-1 bg-muted rounded px-2 py-1 text-xs font-mono break-all">
+                        {o.proxy_username ?? "-"}
+                      </code>
+                      <Button size="icon" variant="outline" onClick={() => copy(o.proxy_username ?? "")}>
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Suggested Pass</Label>
+                    <div className="flex items-center gap-1">
+                      <code className="flex-1 bg-muted rounded px-2 py-1 text-xs font-mono break-all">
+                        {o.proxy_passwd ?? "-"}
+                      </code>
+                      <Button size="icon" variant="outline" onClick={() => copy(o.proxy_passwd ?? "")}>
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Limit (MB)</Label>
+                    <div className="flex items-center gap-1">
+                      <code className="flex-1 bg-muted rounded px-2 py-1 text-xs font-mono">{mbLimit}</code>
+                      <Button size="icon" variant="outline" onClick={() => copy(String(mbLimit))}>
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="flex-1 min-w-[200px]">
+                    <Label className="text-xs">711proxy Order No</Label>
+                    <Input
+                      placeholder="e.g. 2053370894310445056"
+                      value={orderNoInputs[o.id] ?? ""}
+                      onChange={(e) => setOrderNoInputs((m) => ({ ...m, [o.id]: e.target.value }))}
+                    />
+                  </div>
+                  <Button disabled={busyId === o.id} onClick={() => handleApprove(o.id)}>
+                    <Check className="h-4 w-4 mr-1" /> {busyId === o.id ? "Verifying..." : "Approve"}
+                  </Button>
+                  <Button variant="destructive" disabled={busyId === o.id} onClick={() => handleReject(o.id)}>
+                    <X className="h-4 w-4 mr-1" /> Reject
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+          {!pending.length && (
+            <p className="text-center text-sm text-muted-foreground py-4">No pending orders</p>
+          )}
         </CardContent>
       </Card>
 
