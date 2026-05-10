@@ -81,15 +81,16 @@ function AdminOrders() {
     toast.success("Copied");
   };
 
-  const handleApprove = async (id: string) => {
-    const orderNo = (orderNoInputs[id] ?? "").trim();
-    if (!orderNo) {
-      toast.error("Enter the 711proxy username or Order No first");
+  const handleApprove = async (id: string, suggestedUser: string | null) => {
+    const typed = (orderNoInputs[id] ?? "").trim();
+    const username = typed || (suggestedUser ?? "").trim();
+    if (!username) {
+      toast.error("No username available to verify");
       return;
     }
     setBusyId(id);
     try {
-      await approve({ data: { orderId: id, orderNo } });
+      await approve({ data: { orderId: id, orderNo: username } });
       toast.success("Approved & verified on 711proxy");
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
       qc.invalidateQueries({ queryKey: ["admin-orders-summary"] });
