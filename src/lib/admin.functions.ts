@@ -45,7 +45,6 @@ async function create711Order(
   flowBytes: string,
   expireUnixSec: string,
 ): Promise<JsonRecord> {
-  const res = await fetch(`${BASE}/order/`, {
   const res = await fetch(`${EAPI_BASE}/order/`, {
     method: "POST",
     headers: {
