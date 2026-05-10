@@ -72,11 +72,23 @@ function AdminOrders() {
     }
   };
 
+  const [orderNoInputs, setOrderNoInputs] = useState<Record<string, string>>({});
+
+  const copy = (t: string) => {
+    navigator.clipboard.writeText(t);
+    toast.success("Copied");
+  };
+
   const handleApprove = async (id: string) => {
+    const orderNo = (orderNoInputs[id] ?? "").trim();
+    if (!orderNo) {
+      toast.error("Enter the 711proxy Order No first");
+      return;
+    }
     setBusyId(id);
     try {
-      await approve({ data: { orderId: id } });
-      toast.success("Approved & proxy created");
+      await approve({ data: { orderId: id, orderNo } });
+      toast.success("Approved & verified on 711proxy");
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
       qc.invalidateQueries({ queryKey: ["admin-orders-summary"] });
     } catch (e) {
