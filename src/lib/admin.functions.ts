@@ -186,6 +186,135 @@ async function fetch711OrderInfo(token: string, orderNo: string): Promise<JsonRe
   return json;
 }
 
+async function fetch711SubUserByName(token: string, username: string): Promise<JsonRecord | null> {
+  const res = await fetch(
+    `${BASE}/user/sub/?page=1&page_size=20&name=${encodeURIComponent(username)}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  const text = await res.text();
+  let json: JsonRecord;
+  try { json = JSON.parse(text) as JsonRecord; } catch { json = { raw: text }; }
+
+  const results = Array.isArray(json.results) ? json.results : [];
+  const exact = results.find(
+    (row) =>
+      row &&
+      typeof row === "object" &&
+      "suname" in row &&
+      typeof row.suname === "string" &&
+      row.suname === username,
+  );
+  if (exact && typeof exact === "object" && !Array.isArray(exact)) return exact as JsonRecord;
+
+  const caseInsensitive = results.find(
+    (row) =>
+      row &&
+      typeof row === "object" &&
+      "suname" in row &&
+      typeof row.suname === "string" &&
+      row.suname.toLowerCase() === username.toLowerCase(),
+  );
+  if (caseInsensitive && typeof caseInsensitive === "object" && !Array.isArray(caseInsensitive)) {
+    return caseInsensitive as JsonRecord;
+  }
+
+  return null;
+}
+
+function parseTrafficTextToBytes(value: unknown): bigint | null {
+  if (value == null) return null;
+  const raw = String(value).trim();
+  if (!raw || /unlimited/i.test(raw)) return null;
+
+  const normalized = raw.replace(/,/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+  const match = normalized.match(/([0-9]+(?:\.[0-9]+)?)\s*(B|KB|MB|GB|TB)\b/);
+  if (!match) return null;
+
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return null;
+
+  const multiplier = {
+    B: 1,
+    KB: 1024,
+    MB: 1024 ** 2,
+    GB: 1024 ** 3,
+    TB: 1024 ** 4,
+  }[match[2] as "B" | "KB" | "MB" | "GB" | "TB"];
+
+  return BigInt(Math.round(amount * multiplier));
+}
+
+type UsageSnapshot = {
+  lookupType: "order" | "sub-user";
+  resolvedOrderNo: string;
+  suname?: string;
+  passwd?: string;
+  unFlow: string | null;
+  unFlowUsed: string | null;
+  expire: string | null;
+  allocatedBytes: bigint | null;
+};
+
+async function fetch711UsageSnapshot(
+  token: string,
+  identifier: string,
+  fallbackUsername?: string | null,
+): Promise<UsageSnapshot | null> {
+  const trimmedIdentifier = identifier.trim();
+
+  if (/^\d+$/.test(trimmedIdentifier)) {
+    const info = await fetch711OrderInfo(token, trimmedIdentifier);
+    const unFlow = info.un_flow != null ? String(info.un_flow) : null;
+    const unFlowUsed = info.un_flow_used != null ? String(info.un_flow_used) : null;
+    if (unFlow != null || unFlowUsed != null) {
+      const allocatedBytes = unFlow != null && unFlowUsed != null
+        ? BigInt(unFlow) + BigInt(unFlowUsed)
+        : unFlow != null
+          ? BigInt(unFlow)
+          : null;
+
+      return {
+        lookupType: "order",
+        resolvedOrderNo: trimmedIdentifier,
+        unFlow,
+        unFlowUsed,
+        expire: info.expire != null ? String(info.expire) : null,
+        allocatedBytes,
+      };
+    }
+  }
+
+  const usernameCandidates = [trimmedIdentifier, fallbackUsername?.trim() ?? ""].filter(Boolean);
+  for (const username of usernameCandidates) {
+    const subUser = await fetch711SubUserByName(token, username);
+    if (!subUser) continue;
+
+    const unlimited = Number(subUser.traffic_top ?? NaN) === 0 || /unlimited/i.test(String(subUser.traff_flow_top ?? ""));
+    const allocatedBytes = unlimited ? null : parseTrafficTextToBytes(subUser.traff_flow_top);
+    const usedBytes = parseTrafficTextToBytes(subUser.traff_used) ?? 0n;
+    if (!unlimited && allocatedBytes == null) {
+      throw new Error(`711proxy returned an unreadable traffic limit for sub-user \"${username}\".`);
+    }
+
+    const remainingBytes = allocatedBytes == null ? null : allocatedBytes > usedBytes ? allocatedBytes - usedBytes : 0n;
+    return {
+      lookupType: "sub-user",
+      resolvedOrderNo: typeof subUser.suname === "string" && subUser.suname ? subUser.suname : username,
+      suname: typeof subUser.suname === "string" ? subUser.suname : undefined,
+      passwd: typeof subUser.passwd === "string" ? subUser.passwd : undefined,
+      unFlow: remainingBytes == null ? null : remainingBytes.toString(),
+      unFlowUsed: usedBytes.toString(),
+      expire: subUser.expire != null ? String(subUser.expire) : null,
+      allocatedBytes,
+    };
+  }
+
+  return null;
+}
+
 // --- Admin: approve order — admin enters 711 order_no after manual sub-user creation.
 // Server verifies the order exists in 711proxy and that allocated traffic is sufficient,
 // then stores the credentials + live un_flow / un_flow_used / expire on the order.
@@ -224,46 +353,35 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
     if (!cfg?.proxy_username || !cfg?.proxy_passwd) throw new Error("711proxy credentials not configured");
 
     const token = await fetch711Token(cfg.proxy_username, cfg.proxy_passwd);
-    const info = await fetch711OrderInfo(token, data.orderNo);
-
-    // 711 returns the fields at top level (un, un_flow, un_flow_used, expire) when found.
-    const unFlow = info.un_flow != null ? String(info.un_flow) : null;
-    const unFlowUsed = info.un_flow_used != null ? String(info.un_flow_used) : "0";
-    const expire = info.expire != null ? String(info.expire) : null;
-
-    if (!unFlow) {
+    const snapshot = await fetch711UsageSnapshot(token, data.orderNo, order.proxy_username);
+    if (!snapshot) {
       throw new Error(
-        `Order No "${data.orderNo}" not found on 711proxy. Make sure you created the sub-user and copied the correct Order No. (711 says: ${info.message ?? info.raw ?? "no data"})`,
+        `711proxy user/order "${data.orderNo}" not found. Paste the created sub-user username (for manual create) or the real 711 Order No.`,
       );
     }
 
     // Sanity-check the allocated traffic matches what user paid for (allow >= required)
     const requiredBytes = BigInt(Math.round(Number(order.gb_amount) * 1024 * 1024 * 1024));
-    let allocated: bigint;
-    try {
-      allocated = BigInt(unFlow);
-    } catch {
-      throw new Error(`711 returned non-numeric un_flow: ${unFlow}`);
-    }
+    const allocated = snapshot.allocatedBytes;
     // tolerance: allow 1% under
     const minAcceptable = (requiredBytes * 99n) / 100n;
-    if (allocated < minAcceptable) {
+    if (allocated != null && allocated < minAcceptable) {
       throw new Error(
         `Traffic mismatch: order needs ${requiredBytes.toString()} bytes but 711 sub-user has only ${allocated.toString()} bytes. Update the sub-user limit on 711 and try again.`,
       );
     }
 
-    const suname = data.suname ?? order.proxy_username ?? undefined;
-    const passwd = data.passwd ?? order.proxy_passwd ?? undefined;
+    const suname = data.suname ?? snapshot.suname ?? order.proxy_username ?? undefined;
+    const passwd = data.passwd ?? snapshot.passwd ?? order.proxy_passwd ?? undefined;
 
     const { error } = await supabase.rpc("admin_approve_order_manual" as never, {
       _order_id: data.orderId,
-      _order_no: data.orderNo,
+      _order_no: snapshot.resolvedOrderNo,
       _suname: suname ?? null,
       _passwd: passwd ?? null,
-      _un_flow: unFlow,
-      _un_flow_used: unFlowUsed,
-      _expire: expire,
+      _un_flow: snapshot.unFlow,
+      _un_flow_used: snapshot.unFlowUsed ?? "0",
+      _expire: snapshot.expire,
     } as never);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -277,10 +395,10 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
 
     const { data: orders, error } = await supabase
       .from("proxy_orders")
-      .select("id, order_no")
+      .select("id, order_no, proxy_username")
       .eq("status", "approved");
     if (error) throw new Error(error.message);
-    const list = (orders ?? []).filter((o) => o.order_no);
+    const list = (orders ?? []).filter((o) => o.order_no || o.proxy_username);
     if (list.length === 0) return { ok: true, refreshed: 0 };
 
     const { data: cfg } = await supabase.rpc("get_711_credentials" as never);
@@ -291,10 +409,11 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
     let count = 0;
     for (const o of list) {
       try {
-        const info = await fetch711OrderInfo(token, o.order_no!);
-        const unFlow = info.un_flow != null ? String(info.un_flow) : null;
-        const unFlowUsed = info.un_flow_used != null ? String(info.un_flow_used) : null;
-        const expire = info.expire != null ? String(info.expire) : null;
+        const snapshot = await fetch711UsageSnapshot(token, o.order_no ?? o.proxy_username ?? "", o.proxy_username);
+        if (!snapshot) continue;
+        const unFlow = snapshot.unFlow;
+        const unFlowUsed = snapshot.unFlowUsed;
+        const expire = snapshot.expire;
         if (unFlow == null && unFlowUsed == null) continue;
         const { error: uerr } = await supabase.rpc("update_my_order_usage" as never, {
           _order_id: o.id,
