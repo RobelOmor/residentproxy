@@ -135,7 +135,7 @@ function AdminOrders() {
             <a href="https://711proxy.com" target="_blank" rel="noreferrer" className="underline">
               711proxy
             </a>{" "}
-            dashboard, then paste back the created 711 username (or Order No if you have it) and click Approve. Server will verify on 711proxy API.
+            sub-user page, then click Approve. Server verifies the username exists on 711proxy with matching quota.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
