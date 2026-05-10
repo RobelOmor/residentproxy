@@ -19,13 +19,10 @@ async function callApi(
 ): Promise<ApiResult> {
   try {
     const url = new URL(`${BASE}/${path}/`);
-    if (init.token && init.method === "GET") {
-      url.searchParams.set("token", init.token);
-    }
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    if (init.token) headers["token"] = init.token;
+    if (init.token) headers["Authorization"] = `Bearer ${init.token}`;
 
     const res = await fetch(url.toString(), {
       method: init.method,
