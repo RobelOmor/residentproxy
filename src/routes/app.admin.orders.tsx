@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { adminListOrders, adminApproveOrder, adminRejectOrder } from "@/lib/admin.functions";
+import { adminListOrders, adminApproveOrder, adminRejectOrder, adminListTopups, adminApproveTopup, adminRejectTopup } from "@/lib/admin.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,9 @@ function AdminOrders() {
   const listOrders = useServerFn(adminListOrders);
   const approve = useServerFn(adminApproveOrder);
   const reject = useServerFn(adminRejectOrder);
+  const listTopups = useServerFn(adminListTopups);
+  const approveTopup = useServerFn(adminApproveTopup);
+  const rejectTopup = useServerFn(adminRejectTopup);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,6 +37,40 @@ function AdminOrders() {
     queryFn: () => listOrders(),
     refetchInterval: 10000,
   });
+
+  const { data: topupData } = useQuery({
+    queryKey: ["admin-topups"],
+    enabled: role === "admin",
+    queryFn: () => listTopups(),
+    refetchInterval: 10000,
+  });
+
+  const handleApproveTopup = async (id: string) => {
+    setBusyId(id);
+    try {
+      await approveTopup({ data: { topupId: id } });
+      toast.success("Top-up approved & balance credited");
+      qc.invalidateQueries({ queryKey: ["admin-topups"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Approve failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleRejectTopup = async (id: string) => {
+    const note = prompt("Reason for rejection?") ?? undefined;
+    setBusyId(id);
+    try {
+      await rejectTopup({ data: { topupId: id, note } });
+      toast.success("Rejected");
+      qc.invalidateQueries({ queryKey: ["admin-topups"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Reject failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const handleApprove = async (id: string) => {
     setBusyId(id);
@@ -68,6 +105,9 @@ function AdminOrders() {
   const orders = data?.orders ?? [];
   const pending = orders.filter((o) => o.status === "pending");
   const others = orders.filter((o) => o.status !== "pending");
+  const topups = topupData?.topups ?? [];
+  const pendingTopups = topups.filter((t) => t.status === "pending");
+  const otherTopups = topups.filter((t) => t.status !== "pending");
 
   return (
     <div className="space-y-6">
