@@ -46,18 +46,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          balance_usdt: number
           created_at: string
           display_name: string | null
           email: string
           id: string
         }
         Insert: {
+          balance_usdt?: number
           created_at?: string
           display_name?: string | null
           email: string
           id: string
         }
         Update: {
+          balance_usdt?: number
           created_at?: string
           display_name?: string | null
           email?: string
@@ -134,6 +137,39 @@ export type Database = {
         }
         Relationships: []
       }
+      topup_requests: {
+        Row: {
+          admin_note: string | null
+          amount_usdt: number
+          approved_at: string | null
+          created_at: string
+          id: string
+          status: string
+          tx_hash: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_usdt: number
+          approved_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          tx_hash: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount_usdt?: number
+          approved_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          tx_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -160,6 +196,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_approve_topup: { Args: { _topup_id: string }; Returns: undefined }
+      admin_reject_topup: {
+        Args: { _note?: string; _topup_id: string }
+        Returns: undefined
+      }
       get_711_credentials: {
         Args: never
         Returns: {
