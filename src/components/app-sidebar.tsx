@@ -31,6 +31,7 @@ export function AppSidebar() {
     { title: "Dashboard", url: "/app/admin", icon: LayoutDashboard },
     { title: "Config", url: "/app/admin/config", icon: Cog },
     { title: "Orders", url: "/app/admin/orders", icon: Users },
+    { title: "Sub-User Pool", url: "/app/admin/subusers", icon: UserPlus },
   ];
 
   const items = role === "admin" ? adminItems : userItems;
