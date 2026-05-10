@@ -14,10 +14,10 @@ async function fetch711Token(username: string, passwd: string): Promise<string> 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, passwd }),
   });
-  const json = (await res.json()) as { results?: { token?: string } };
+  const json = (await res.json()) as { code?: number; message?: string; results?: { token?: string } };
   const token = json.results?.token;
   if (typeof token !== "string") {
-    throw new Error(`711proxy login failed: ${JSON.stringify(json)}`);
+    throw new Error(json.message ?? `711proxy login failed (code ${json.code ?? "?"})`);
   }
   return token;
 }
@@ -27,7 +27,12 @@ async function fetch711Balance(token: string): Promise<JsonRecord> {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
-  return (await res.json()) as JsonRecord;
+  const json = (await res.json()) as JsonRecord;
+  // Unwrap results wrapper if present
+  if (json && typeof json === "object" && json.results && typeof json.results === "object" && !Array.isArray(json.results)) {
+    return { ...(json.results as JsonRecord), _code: (json.code as JsonValue) ?? null, _message: (json.message as JsonValue) ?? null };
+  }
+  return json;
 }
 
 async function create711Order(token: string, gb: number): Promise<JsonRecord> {
