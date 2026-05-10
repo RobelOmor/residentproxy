@@ -205,14 +205,14 @@ function AdminOrders() {
 
                 <div className="flex flex-wrap items-end gap-2">
                   <div className="flex-1 min-w-[200px]">
-                    <Label className="text-xs">711proxy Username / Order No</Label>
+                    <Label className="text-xs">711proxy Username (override, optional)</Label>
                     <Input
-                      placeholder="e.g. RP8as5un or 2053370894310445056"
+                      placeholder={o.proxy_username ?? "RP..."}
                       value={orderNoInputs[o.id] ?? ""}
                       onChange={(e) => setOrderNoInputs((m) => ({ ...m, [o.id]: e.target.value }))}
                     />
                   </div>
-                  <Button disabled={busyId === o.id} onClick={() => handleApprove(o.id)}>
+                  <Button disabled={busyId === o.id} onClick={() => handleApprove(o.id, o.proxy_username)}>
                     <Check className="h-4 w-4 mr-1" /> {busyId === o.id ? "Verifying..." : "Approve"}
                   </Button>
                   <Button variant="destructive" disabled={busyId === o.id} onClick={() => handleReject(o.id)}>
