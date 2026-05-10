@@ -19,13 +19,10 @@ async function callApi(
 ): Promise<ApiResult> {
   try {
     const url = new URL(`${BASE}/${path}/`);
-    if (init.token && init.method === "GET") {
-      url.searchParams.set("token", init.token);
-    }
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    if (init.token) headers["token"] = init.token;
+    if (init.token) headers["Authorization"] = `Bearer ${init.token}`;
 
     const res = await fetch(url.toString(), {
       method: init.method,
@@ -70,13 +67,18 @@ export const createOrder = createServerFn({ method: "POST" })
       .object({
         token: z.string().min(1),
         flow: z.number().int().positive(), // GB amount
-        days: z.number().int().positive().optional(),
-        product_type: z.string().optional(),
+        expire: z.string().optional(),
+        host: z.string().optional(),
       })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const { token, ...payload } = data;
+    const { token, flow, expire, host } = data;
+    // API expects flow in bytes as string; 1 GB = 1024^3 bytes
+    const flowBytes = (BigInt(flow) * BigInt(1024) * BigInt(1024) * BigInt(1024)).toString();
+    const payload: Record<string, string> = { flow: flowBytes };
+    if (expire) payload.expire = expire;
+    if (host) payload.host = host;
     return callApi("order", { method: "POST", token, body: payload });
   });
 
