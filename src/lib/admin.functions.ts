@@ -103,6 +103,22 @@ export const adminSaveConfig = createServerFn({ method: "POST" })
       .eq("id", 1);
     if (error) throw new Error(error.message);
     return { ok: true };
+
+// --- Admin: test 711 credentials without saving ---
+export const adminTest711 = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ username: z.string().min(1), passwd: z.string().min(1) }).parse(input),
+  )
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    try {
+      const token = await fetch711Token(data.username, data.passwd);
+      const balance = await fetch711Balance(token);
+      return { ok: true as const, balance };
+    } catch (e) {
+      return { ok: false as const, error: e instanceof Error ? e.message : "Connection failed" };
+    }
   });
 
 // --- Public: get pricing ---
