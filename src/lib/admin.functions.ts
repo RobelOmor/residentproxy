@@ -225,6 +225,60 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// --- User: refresh own orders' usage from 711proxy live API ---
+export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabase = context.supabase as unknown as SbClient;
+
+    const { data: orders, error: oerr } = await supabase
+      .from("proxy_orders")
+      .select("id, order_no")
+      .eq("user_id", context.userId)
+      .eq("status", "approved");
+    if (oerr) throw new Error(oerr.message);
+    if (!orders || orders.length === 0) return { ok: true, refreshed: 0 };
+
+    // Get 711 enterprise creds via SECURITY DEFINER RPC
+    const { data: credsRow, error: cerr } = await supabase.rpc("get_711_credentials" as never);
+    if (cerr) throw new Error(cerr.message);
+    const creds = Array.isArray(credsRow) ? credsRow[0] : credsRow;
+    const username = (creds as { username?: string } | null)?.username;
+    const passwd = (creds as { passwd?: string } | null)?.passwd;
+    if (!username || !passwd) throw new Error("711proxy credentials not configured");
+
+    const token = await fetch711Token(username, passwd);
+
+    let refreshed = 0;
+    for (const o of orders) {
+      if (!o.order_no) continue;
+      try {
+        const res = await fetch(`${BASE}/order/?order_no=${encodeURIComponent(o.order_no)}`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = (await res.json()) as JsonRecord;
+        const r = (json.results && typeof json.results === "object" && !Array.isArray(json.results)
+          ? (json.results as JsonRecord)
+          : json) as JsonRecord;
+        await supabase
+          .from("proxy_orders")
+          .update({
+            un_flow: (r.un_flow as string) ?? null,
+            un_flow_used: (r.un_flow_used as string) ?? null,
+            expire: (r.expire as string) ?? null,
+          })
+          .eq("id", o.id)
+          .eq("user_id", context.userId);
+        refreshed++;
+      } catch (e) {
+        console.error("refresh order failed", o.order_no, e);
+      }
+    }
+
+    return { ok: true, refreshed };
+  });
+
 // --- Admin: reject order ---
 export const adminRejectOrder = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
