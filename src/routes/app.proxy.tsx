@@ -18,11 +18,20 @@ export const Route = createFileRoute("/app/proxy")({
   component: BuyProxy,
 });
 
+// Unit in MB. Min 1 MB, Max 100 GB = 102400 MB.
+const MIN_MB = 1;
+const MAX_MB = 100 * 1024;
+
+function formatMB(mb: number): string {
+  if (mb >= 1024) return `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 2)} GB`;
+  return `${mb} MB`;
+}
+
 function BuyProxy() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const fetchPricing = useServerFn(getPublicPricing);
-  const [gb, setGb] = useState(5);
+  const [mb, setMb] = useState(1024); // default 1 GB
   const [txHash, setTxHash] = useState("");
   const [step, setStep] = useState<"select" | "pay" | "submitted">("select");
   const [busy, setBusy] = useState(false);
@@ -32,8 +41,9 @@ function BuyProxy() {
     queryFn: () => fetchPricing(),
   });
 
-  const price = pricing?.price_per_gb_usdt ?? 3;
-  const total = (gb * Number(price)).toFixed(2);
+  const pricePerGB = Number(pricing?.price_per_gb_usdt ?? 3);
+  const gb = mb / 1024;
+  const total = (gb * pricePerGB).toFixed(4);
 
   const submit = async () => {
     if (!user) return;
@@ -65,23 +75,52 @@ function BuyProxy() {
       {step === "select" && (
         <Card>
           <CardHeader>
-            <CardTitle>Step 1: Choose GB Amount</CardTitle>
-            <CardDescription>Price: ${Number(price).toFixed(2)} USDT per GB</CardDescription>
+            <CardTitle>Step 1: Choose Traffic Amount</CardTitle>
+            <CardDescription>
+              Price: ${pricePerGB.toFixed(2)} USDT per GB · Min 1 MB · Max 100 GB
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
               <div className="flex justify-between mb-2">
-                <Label>GB Amount</Label>
-                <span className="font-bold">{gb} GB</span>
+                <Label>Amount</Label>
+                <span className="font-bold">{formatMB(mb)}</span>
               </div>
-              <Slider value={[gb]} min={1} max={100} step={1} onValueChange={(v) => setGb(v[0])} />
-              <Input
-                type="number"
-                min={1}
-                value={gb}
-                onChange={(e) => setGb(Math.max(1, Number(e.target.value) || 1))}
-                className="mt-3"
+              <Slider
+                value={[mb]}
+                min={MIN_MB}
+                max={MAX_MB}
+                step={1}
+                onValueChange={(v) => setMb(v[0])}
               />
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Megabytes (MB)</Label>
+                  <Input
+                    type="number"
+                    min={MIN_MB}
+                    max={MAX_MB}
+                    value={mb}
+                    onChange={(e) =>
+                      setMb(Math.min(MAX_MB, Math.max(MIN_MB, Number(e.target.value) || MIN_MB)))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Gigabytes (GB)</Label>
+                  <Input
+                    type="number"
+                    min={0.001}
+                    max={100}
+                    step={0.001}
+                    value={gb}
+                    onChange={(e) => {
+                      const g = Math.min(100, Math.max(0.001, Number(e.target.value) || 0.001));
+                      setMb(Math.max(MIN_MB, Math.round(g * 1024)));
+                    }}
+                  />
+                </div>
+              </div>
             </div>
             <div className="border-t pt-4 flex justify-between items-center">
               <div>
