@@ -159,7 +159,8 @@ function AdminSubUsers() {
                 <TableHead>Sub-user</TableHead>
                 <TableHead>Password</TableHead>
                 <TableHead>Host:Port</TableHead>
-                <TableHead>MB Capacity</TableHead>
+                <TableHead>Capacity</TableHead>
+                <TableHead>MB Used (edit)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead></TableHead>
@@ -167,31 +168,76 @@ function AdminSubUsers() {
             </TableHeader>
             <TableBody>
               {(pool ?? []).map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-mono text-xs">{p.suname}</TableCell>
-                  <TableCell className="font-mono text-xs">{p.passwd}</TableCell>
-                  <TableCell className="font-mono text-xs">{p.host}:{p.port}</TableCell>
-                  <TableCell>{Number(p.mb_capacity).toLocaleString()} MB</TableCell>
-                  <TableCell>
-                    {p.assigned_to_order_id ? <Badge>Assigned</Badge> : <Badge variant="secondary">Available</Badge>}
-                  </TableCell>
-                  <TableCell className="text-xs">{new Date(p.created_at).toLocaleString()}</TableCell>
-                  <TableCell>
-                    {!p.assigned_to_order_id && (
-                      <Button size="icon" variant="ghost" onClick={() => remove(p.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
+                <PoolRow key={p.id} p={p} onChanged={() => qc.invalidateQueries({ queryKey: ["sub-user-pool"] })} onRemove={remove} />
               ))}
               {(pool ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No pool entries yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">No pool entries yet</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function PoolRow({
+  p,
+  onChanged,
+  onRemove,
+}: {
+  p: { id: string; suname: string; passwd: string; host: string; port: string; mb_capacity: number; mb_used: number; assigned_to_order_id: string | null; created_at: string };
+  onChanged: () => void;
+  onRemove: (id: string) => void;
+}) {
+  const [used, setUsed] = useState<string>(String(p.mb_used ?? 0));
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setUsed(String(p.mb_used ?? 0)); }, [p.mb_used]);
+
+  const save = async () => {
+    const n = Number(used);
+    if (!isFinite(n) || n < 0) return toast.error("Invalid number");
+    setSaving(true);
+    const { error } = await supabase.rpc("admin_update_pool_usage" as never, { _pool_id: p.id, _mb_used: n } as never);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Usage updated & synced to user order");
+    onChanged();
+  };
+
+  return (
+    <TableRow>
+      <TableCell className="font-mono text-xs">{p.suname}</TableCell>
+      <TableCell className="font-mono text-xs">{p.passwd}</TableCell>
+      <TableCell className="font-mono text-xs">{p.host}:{p.port}</TableCell>
+      <TableCell>{Number(p.mb_capacity).toLocaleString()} MB</TableCell>
+      <TableCell>
+        <div className="flex gap-1 items-center">
+          <Input
+            className="h-8 w-24"
+            type="number"
+            min={0}
+            step="0.01"
+            value={used}
+            onChange={(e) => setUsed(e.target.value)}
+          />
+          <Button size="sm" variant="outline" onClick={save} disabled={saving}>
+            {saving ? "..." : "Save"}
+          </Button>
+        </div>
+      </TableCell>
+      <TableCell>
+        {p.assigned_to_order_id ? <Badge>Assigned</Badge> : <Badge variant="secondary">Available</Badge>}
+      </TableCell>
+      <TableCell className="text-xs">{new Date(p.created_at).toLocaleString()}</TableCell>
+      <TableCell>
+        {!p.assigned_to_order_id && (
+          <Button size="icon" variant="ghost" onClick={() => onRemove(p.id)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </TableCell>
+    </TableRow>
   );
 }
