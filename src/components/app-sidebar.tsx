@@ -39,7 +39,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="px-3 py-2">
-          <h1 className="text-lg font-bold">711Proxy</h1>
+          <h1 className="text-lg font-bold">ResidentProxy.com</h1>
           <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
         </div>
       </SidebarHeader>

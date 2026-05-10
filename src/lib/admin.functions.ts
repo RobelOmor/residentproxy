@@ -38,7 +38,8 @@ async function fetch711Balance(token: string): Promise<JsonRecord> {
 }
 
 async function create711Order(token: string, gb: number): Promise<JsonRecord> {
-  const flowBytes = (BigInt(gb) * BigInt(1024) * BigInt(1024) * BigInt(1024)).toString();
+  // Support fractional GB (e.g. 0.001 GB ≈ 1 MB). Convert to whole bytes.
+  const flowBytes = BigInt(Math.max(1, Math.round(gb * 1024 * 1024 * 1024))).toString();
   const res = await fetch(`${BASE}/order/`, {
     method: "POST",
     headers: {
