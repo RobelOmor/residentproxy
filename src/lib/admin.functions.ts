@@ -37,41 +37,20 @@ async function fetch711Balance(token: string): Promise<JsonRecord> {
   return json;
 }
 
-// Generate sub-username: "rs" + 10 lowercase alphanumeric chars (total 12)
-function generateSubUsername(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let s = "rs";
-  for (let i = 0; i < 10; i++) s += chars[Math.floor(Math.random() * chars.length)];
-  return s;
-}
-
-function generateSubPassword(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let s = "";
-  for (let i = 0; i < 12; i++) s += chars[Math.floor(Math.random() * chars.length)];
-  return s;
-}
-
-// Create sub-user on 711proxy enterprise account with traffic cap.
-// Does NOT deduct enterprise USDT balance — only allocates from existing pool.
-async function create711SubUser(
+// Create order (allocates traffic from enterprise pool, returns auto-generated user:pass).
+// Endpoint: POST /eapi/order/ — body: { flow (bytes string), expire (unix-sec string), host? }
+async function create711Order(
   token: string,
-  suname: string,
-  passwd: string,
   flowBytes: string,
+  expireUnixSec: string,
 ): Promise<JsonRecord> {
-  const res = await fetch(`${BASE}/auth/sub_users/`, {
+  const res = await fetch(`${BASE}/order/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      suname,
-      passwd,
-      traff_flow_top: flowBytes,
-      activate: true,
-    }),
+    body: JSON.stringify({ flow: flowBytes, expire: expireUnixSec }),
   });
   const text = await res.text();
   let json: JsonRecord;
