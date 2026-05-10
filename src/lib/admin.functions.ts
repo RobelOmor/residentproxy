@@ -298,3 +298,50 @@ export const adminRejectOrder = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// --- Admin: list all topup requests ---
+export const adminListTopups = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
+    const { data: topups, error } = await supabase
+      .from("topup_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const { data: profiles } = await supabase.from("profiles").select("id, email, balance_usdt");
+    const map = new Map((profiles ?? []).map((p) => [p.id, p]));
+    return {
+      topups: (topups ?? []).map((t) => ({
+        ...t,
+        user_email: map.get(t.user_id)?.email ?? "unknown",
+        user_balance: Number(map.get(t.user_id)?.balance_usdt ?? 0),
+      })),
+    };
+  });
+
+export const adminApproveTopup = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ topupId: z.string().uuid() }).parse(input))
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase as unknown as SbClient;
+    const { error } = await supabase.rpc("admin_approve_topup" as never, { _topup_id: data.topupId } as never);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminRejectTopup = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ topupId: z.string().uuid(), note: z.string().optional() }).parse(input),
+  )
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase as unknown as SbClient;
+    const { error } = await supabase.rpc("admin_reject_topup" as never, {
+      _topup_id: data.topupId,
+      _note: data.note ?? null,
+    } as never);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
