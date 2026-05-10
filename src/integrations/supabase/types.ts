@@ -197,6 +197,10 @@ export type Database = {
     }
     Functions: {
       admin_approve_topup: { Args: { _topup_id: string }; Returns: undefined }
+      admin_reject_order_refund: {
+        Args: { _note?: string; _order_id: string }
+        Returns: undefined
+      }
       admin_reject_topup: {
         Args: { _note?: string; _topup_id: string }
         Returns: undefined
@@ -222,6 +226,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      purchase_proxy_with_balance: {
+        Args: { _cost: number; _gb: number }
+        Returns: string
       }
       update_my_order_usage: {
         Args: {
