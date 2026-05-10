@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { adminGetConfig, adminSaveConfig } from "@/lib/admin.functions";
+import { adminGetConfig, adminSaveConfig, adminTest711 } from "@/lib/admin.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ function AdminConfig() {
   const qc = useQueryClient();
   const getConfig = useServerFn(adminGetConfig);
   const saveConfig = useServerFn(adminSaveConfig);
+  const test711 = useServerFn(adminTest711);
 
   useEffect(() => {
     if (!loading && role && role !== "admin") navigate({ to: "/app/dashboard" });
@@ -70,10 +71,37 @@ function AdminConfig() {
     }
   };
 
+  const testConnection = async () => {
+    if (!username || !passwd) {
+      toast.error("Enter username & password first");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await test711({ data: { username, passwd } });
+      if (res.ok) {
+        const gb = (Number((res.balance as Record<string, unknown>)?.flow_balance ?? 0) / 1024 ** 3).toFixed(2);
+        toast.success(`Connected ✓ Balance: ${gb} GB`);
+        qc.setQueryData(["admin-config"], (old: unknown) => ({
+          ...(old as object),
+          balance: res.balance,
+        }));
+      } else {
+        toast.error(res.error);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Test failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (role !== "admin" || isLoading) return <p>Loading...</p>;
 
   const balance = data?.balance as Record<string, unknown> | null;
-  const flowGB = (Number(balance?.flow_balance ?? 0) / (1024 ** 3)).toFixed(2);
+  const flowBalance = Number(balance?.flow_balance ?? 0);
+  const flowGB = (flowBalance / 1024 ** 3).toFixed(2);
+  const hasError = balance && typeof balance.error === "string";
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -82,7 +110,7 @@ function AdminConfig() {
       <Card>
         <CardHeader>
           <CardTitle>711Proxy Login</CardTitle>
-          <CardDescription>One-time setup. After saving, balance auto-refreshes.</CardDescription>
+          <CardDescription>Enterprise account credentials. Used to fetch balance and create proxy orders.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
@@ -93,12 +121,16 @@ function AdminConfig() {
             <Label htmlFor="p">Password</Label>
             <Input id="p" type="password" value={passwd} onChange={(e) => setPasswd(e.target.value)} />
           </div>
-          {balance && !balance.error ? (
-            <div className="rounded-md border bg-muted/50 p-3 text-sm">
-              ✅ Connected — Enterprise Balance: <span className="font-bold">{flowGB} GB</span>
+          <Button type="button" variant="outline" onClick={testConnection} disabled={busy}>
+            Test Connection
+          </Button>
+          {balance && !hasError && flowBalance > 0 ? (
+            <div className="rounded-md border bg-muted/50 p-3 text-sm space-y-1">
+              <div>✅ Connected — Enterprise Balance: <span className="font-bold">{flowGB} GB</span></div>
+              <div className="text-xs text-muted-foreground">Raw flow_balance: {String(balance.flow_balance ?? "—")} bytes</div>
             </div>
           ) : null}
-          {balance?.error ? (
+          {hasError ? (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
               {String(balance.error)}
             </div>
