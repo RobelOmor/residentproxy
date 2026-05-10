@@ -137,6 +137,59 @@ export type Database = {
         }
         Relationships: []
       }
+      sub_user_pool: {
+        Row: {
+          assigned_at: string | null
+          assigned_to_order_id: string | null
+          created_at: string
+          expire_at: string | null
+          host: string
+          id: string
+          mb_capacity: number
+          note: string | null
+          passwd: string
+          port: string
+          proto: string
+          suname: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_to_order_id?: string | null
+          created_at?: string
+          expire_at?: string | null
+          host?: string
+          id?: string
+          mb_capacity: number
+          note?: string | null
+          passwd: string
+          port?: string
+          proto?: string
+          suname: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_to_order_id?: string | null
+          created_at?: string
+          expire_at?: string | null
+          host?: string
+          id?: string
+          mb_capacity?: number
+          note?: string | null
+          passwd?: string
+          port?: string
+          proto?: string
+          suname?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_user_pool_assigned_to_order_id_fkey"
+            columns: ["assigned_to_order_id"]
+            isOneToOne: false
+            referencedRelation: "proxy_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topup_requests: {
         Row: {
           admin_note: string | null
@@ -197,6 +250,10 @@ export type Database = {
     }
     Functions: {
       admin_approve_topup: { Args: { _topup_id: string }; Returns: undefined }
+      admin_assign_sub_user_to_order: {
+        Args: { _order_id: string }
+        Returns: Json
+      }
       admin_reject_order_refund: {
         Args: { _note?: string; _order_id: string }
         Returns: undefined
