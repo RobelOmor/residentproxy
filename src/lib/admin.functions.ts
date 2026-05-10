@@ -296,19 +296,32 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
     for (const o of orders) {
       if (!o.order_no) continue;
       try {
-        const res = await fetch(`${BASE}/order/?order_no=${encodeURIComponent(o.order_no)}`, {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Query sub-user info by suname (order_no holds suname now)
+        const res = await fetch(
+          `${BASE}/auth/sub_users/?suname=${encodeURIComponent(o.order_no)}`,
+          { method: "GET", headers: { Authorization: `Bearer ${token}` } },
+        );
         const json = (await res.json()) as JsonRecord;
-        const r = (json.results && typeof json.results === "object" && !Array.isArray(json.results)
-          ? (json.results as JsonRecord)
-          : json) as JsonRecord;
+        let r: JsonRecord = {};
+        const results = json.results;
+        if (Array.isArray(results) && results.length > 0) {
+          r = results[0] as JsonRecord;
+        } else if (results && typeof results === "object") {
+          const list = (results as JsonRecord).list;
+          if (Array.isArray(list) && list.length > 0) {
+            r = list[0] as JsonRecord;
+          } else {
+            r = results as JsonRecord;
+          }
+        }
+
+        const flowTop = r.traff_flow_top ?? r.un_flow ?? null;
+        const flowUsed = r.traff_used ?? r.un_flow_used ?? null;
         const { error: uerr } = await supabase.rpc("update_my_order_usage" as never, {
           _order_id: o.id,
-          _un_flow: (r.un_flow as string) ?? null,
-          _un_flow_used: (r.un_flow_used as string) ?? null,
-          _expire: (r.expire as string) ?? null,
+          _un_flow: flowTop != null ? String(flowTop) : null,
+          _un_flow_used: flowUsed != null ? String(flowUsed) : null,
+          _expire: null,
         } as never);
         if (uerr) {
           console.error("update_my_order_usage failed", o.order_no, uerr.message);
