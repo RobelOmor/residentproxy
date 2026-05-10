@@ -131,7 +131,7 @@ function AdminOrders() {
               {pending.map((o) => (
                 <TableRow key={o.id}>
                   <TableCell>{o.user_email}</TableCell>
-                  <TableCell><Badge>{o.gb_amount} GB</Badge></TableCell>
+                  <TableCell><Badge>{Number(o.gb_amount) >= 1 ? `${Number(o.gb_amount).toFixed(2)} GB` : `${Math.round(Number(o.gb_amount) * 1024)} MB`}</Badge></TableCell>
                   <TableCell>${Number(o.cost_usdt).toFixed(2)}</TableCell>
                   <TableCell className="font-mono text-xs max-w-[200px] truncate">
                     {o.tx_hash}
@@ -186,7 +186,7 @@ function AdminOrders() {
                   <TableCell>
                     <Badge variant={o.status === "approved" ? "default" : "destructive"}>{o.status}</Badge>
                   </TableCell>
-                  <TableCell>{o.gb_amount}</TableCell>
+                  <TableCell>{Number(o.gb_amount) >= 1 ? `${Number(o.gb_amount).toFixed(2)} GB` : `${Math.round(Number(o.gb_amount) * 1024)} MB`}</TableCell>
                   <TableCell className="font-mono text-xs">{o.proxy_username ?? "-"}</TableCell>
                   <TableCell className="font-mono text-xs">{o.host ? `${o.host}:${o.port}` : "-"}</TableCell>
                   <TableCell className="text-xs">{new Date(o.created_at).toLocaleString()}</TableCell>
@@ -195,6 +195,70 @@ function AdminOrders() {
               {!others.length && (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No completed orders</TableCell></TableRow>
               )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Top-up Requests ({pendingTopups.length} pending)</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Current Balance</TableHead>
+                <TableHead>TX Hash</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pendingTopups.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell>{t.user_email}</TableCell>
+                  <TableCell className="font-semibold">${Number(t.amount_usdt).toFixed(2)}</TableCell>
+                  <TableCell>${Number(t.user_balance).toFixed(2)}</TableCell>
+                  <TableCell className="font-mono text-xs max-w-[200px] truncate">
+                    {t.tx_hash}
+                    {t.tx_hash && (
+                      <a
+                        href={`https://tronscan.org/#/transaction/${t.tx_hash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block ml-1"
+                      >
+                        <ExternalLink className="h-3 w-3 inline" />
+                      </a>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs">{new Date(t.created_at).toLocaleString()}</TableCell>
+                  <TableCell className="text-right space-x-1">
+                    <Button size="sm" disabled={busyId === t.id} onClick={() => handleApproveTopup(t.id)}>
+                      <Check className="h-4 w-4 mr-1" /> {busyId === t.id ? "..." : "Approve"}
+                    </Button>
+                    <Button size="sm" variant="destructive" disabled={busyId === t.id} onClick={() => handleRejectTopup(t.id)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!pendingTopups.length && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No pending top-ups</TableCell></TableRow>
+              )}
+              {otherTopups.map((t) => (
+                <TableRow key={t.id} className="opacity-70">
+                  <TableCell>{t.user_email}</TableCell>
+                  <TableCell>${Number(t.amount_usdt).toFixed(2)}</TableCell>
+                  <TableCell>${Number(t.user_balance).toFixed(2)}</TableCell>
+                  <TableCell className="font-mono text-xs max-w-[200px] truncate">{t.tx_hash}</TableCell>
+                  <TableCell className="text-xs">{new Date(t.created_at).toLocaleString()}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant={t.status === "approved" ? "default" : "destructive"}>{t.status}</Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </CardContent>
