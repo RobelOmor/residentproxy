@@ -1,6 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 const inputSchema = z.object({
   username: z.string().min(1),
   passwd: z.string().min(1),
@@ -16,9 +24,9 @@ export const getProxyToken = createServerFn({ method: "POST" })
         body: JSON.stringify(data),
       });
       const text = await res.text();
-      let json: Record<string, unknown>;
+      let json: JsonValue;
       try {
-        json = JSON.parse(text) as Record<string, unknown>;
+        json = JSON.parse(text) as JsonValue;
       } catch {
         json = { raw: text };
       }
