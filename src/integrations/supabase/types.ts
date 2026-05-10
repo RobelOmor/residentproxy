@@ -14,16 +14,159 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_config: {
+        Row: {
+          id: number
+          price_per_gb_usdt: number
+          proxy_passwd: string | null
+          proxy_username: string | null
+          updated_at: string
+          usdt_address: string | null
+          usdt_network: string | null
+        }
+        Insert: {
+          id?: number
+          price_per_gb_usdt?: number
+          proxy_passwd?: string | null
+          proxy_username?: string | null
+          updated_at?: string
+          usdt_address?: string | null
+          usdt_network?: string | null
+        }
+        Update: {
+          id?: number
+          price_per_gb_usdt?: number
+          proxy_passwd?: string | null
+          proxy_username?: string | null
+          updated_at?: string
+          usdt_address?: string | null
+          usdt_network?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      proxy_orders: {
+        Row: {
+          admin_note: string | null
+          api_response: Json | null
+          approved_at: string | null
+          cost_usdt: number
+          created_at: string
+          expire: string | null
+          gb_amount: number
+          host: string | null
+          id: string
+          order_no: string | null
+          port: string | null
+          proto: string | null
+          proxy_passwd: string | null
+          proxy_username: string | null
+          status: string
+          tx_hash: string | null
+          un: string | null
+          un_flow: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          api_response?: Json | null
+          approved_at?: string | null
+          cost_usdt: number
+          created_at?: string
+          expire?: string | null
+          gb_amount: number
+          host?: string | null
+          id?: string
+          order_no?: string | null
+          port?: string | null
+          proto?: string | null
+          proxy_passwd?: string | null
+          proxy_username?: string | null
+          status?: string
+          tx_hash?: string | null
+          un?: string | null
+          un_flow?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          api_response?: Json | null
+          approved_at?: string | null
+          cost_usdt?: number
+          created_at?: string
+          expire?: string | null
+          gb_amount?: number
+          host?: string | null
+          id?: string
+          order_no?: string | null
+          port?: string | null
+          proto?: string | null
+          proxy_passwd?: string | null
+          proxy_username?: string | null
+          status?: string
+          tx_hash?: string | null
+          un?: string | null
+          un_flow?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +293,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
