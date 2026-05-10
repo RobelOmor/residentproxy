@@ -4,7 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const BASE = "https://server.711proxy.com/eapi";
+const EAPI_BASE = "https://server.711proxy.com/eapi";
+const API_BASE = "https://server.711proxy.com";
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
 type JsonRecord = { [k: string]: JsonValue };
@@ -12,7 +13,7 @@ type JsonRecord = { [k: string]: JsonValue };
 type SbClient = ReturnType<typeof createClient<Database>>;
 
 async function fetch711Token(username: string, passwd: string): Promise<string> {
-  const res = await fetch(`${BASE}/token/`, {
+  const res = await fetch(`${EAPI_BASE}/token/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, passwd }),
@@ -26,7 +27,7 @@ async function fetch711Token(username: string, passwd: string): Promise<string> 
 }
 
 async function fetch711Balance(token: string): Promise<JsonRecord> {
-  const res = await fetch(`${BASE}/balance/`, {
+  const res = await fetch(`${EAPI_BASE}/balance/`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -45,6 +46,7 @@ async function create711Order(
   expireUnixSec: string,
 ): Promise<JsonRecord> {
   const res = await fetch(`${BASE}/order/`, {
+  const res = await fetch(`${EAPI_BASE}/order/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -176,7 +178,7 @@ export const adminListOrders = createServerFn({ method: "POST" })
 
 // Fetch one order's live data from 711proxy by order_no
 async function fetch711OrderInfo(token: string, orderNo: string): Promise<JsonRecord> {
-  const res = await fetch(`${BASE}/order/?order_no=${encodeURIComponent(orderNo)}`, {
+  const res = await fetch(`${EAPI_BASE}/order/?order_no=${encodeURIComponent(orderNo)}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -188,15 +190,22 @@ async function fetch711OrderInfo(token: string, orderNo: string): Promise<JsonRe
 
 async function fetch711SubUserByName(token: string, username: string): Promise<JsonRecord | null> {
   const res = await fetch(
-    `${BASE}/user/sub/?page=1&page_size=20&name=${encodeURIComponent(username)}`,
+    `${API_BASE}/user/sub/?page=1&page_size=999&status=0&name=${encodeURIComponent(username)}`,
     {
       method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
     },
   );
   const text = await res.text();
   let json: JsonRecord;
   try { json = JSON.parse(text) as JsonRecord; } catch { json = { raw: text }; }
+
+  if (!res.ok) {
+    throw new Error(`711proxy sub-user lookup failed (${res.status})`);
+  }
 
   const results = Array.isArray(json.results) ? json.results : [];
   const exact = results.find(
