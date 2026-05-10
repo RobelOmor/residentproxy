@@ -128,7 +128,7 @@ export const adminTest711 = createServerFn({ method: "POST" })
     }
   });
 
-// --- Public: get pricing (anon-readable via separate client) ---
+// --- Public: get pricing via SECURITY DEFINER RPC (no auth required) ---
 export const getPublicPricing = createServerFn({ method: "GET" }).handler(async () => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY;
@@ -136,12 +136,13 @@ export const getPublicPricing = createServerFn({ method: "GET" }).handler(async 
   const sb = createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data } = await sb
-    .from("app_config")
-    .select("price_per_gb_usdt, usdt_address, usdt_network")
-    .eq("id", 1)
-    .maybeSingle();
-  return data;
+  const { data, error } = await sb.rpc("get_public_pricing");
+  if (error) {
+    console.error("get_public_pricing rpc error:", error.message);
+    return null;
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  return row ?? null;
 });
 
 // --- Admin: list all orders + users ---
