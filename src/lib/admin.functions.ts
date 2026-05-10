@@ -202,49 +202,63 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
 
     const token = await fetch711Token(config.proxy_username, config.proxy_passwd);
 
-    // Generate unique sub-user credentials
-    const suname = generateSubUsername();
-    const passwd = generateSubPassword();
     // Convert GB to bytes (supports fractional, min 1 byte)
     const flowBytes = BigInt(
       Math.max(1, Math.round(Number(order.gb_amount) * 1024 * 1024 * 1024)),
     ).toString();
 
-    const apiRes = await create711SubUser(token, suname, passwd, flowBytes);
+    // 30-day validity window from approval (unix seconds for 711 API)
+    const expireMs = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    const expireUnixSec = Math.floor(expireMs / 1000).toString();
+
+    const apiRes = await create711Order(token, flowBytes, expireUnixSec);
 
     const code = apiRes.code as number | undefined;
-    const httpStatus = apiRes._http_status as number | undefined;
-    const isOk = code === 200 || code === 0 || (code === undefined && httpStatus === 200);
+    const isOk = code === 200 || code === 0;
     if (!isOk) {
       throw new Error(
-        `711proxy sub-user creation failed: ${apiRes.msg ?? apiRes.message ?? apiRes.error ?? JSON.stringify(apiRes)}`,
+        `711proxy create order failed: ${apiRes.msg ?? apiRes.message ?? apiRes.error ?? JSON.stringify(apiRes)}`,
       );
     }
 
-    // 30-day validity window from approval
-    const expireDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const r = (apiRes.results ?? apiRes) as JsonRecord;
+    const username = (r.username as string) ?? "";
+    const passwd = (r.passwd as string) ?? "";
+    const host = (r.host as string) ?? "global.rotgb.711proxy.com";
+    const port = (r.port as string) ?? "10000";
+    const proto = (r.proto as string) ?? "http";
+    const orderNo = (r.order_no as string) ?? username;
+    const un = (r.un as string) ?? `${username}:${passwd}@${host}:${port}`;
+    const apiExpire = (r.expire as string) ?? expireUnixSec;
+    const unFlow = (r.un_flow as string) ?? flowBytes;
+
+    if (!username || !passwd) {
+      throw new Error(
+        `711proxy returned incomplete credentials: ${JSON.stringify(apiRes).slice(0, 300)}`,
+      );
+    }
 
     const { error: uerr } = await supabase
       .from("proxy_orders")
       .update({
         status: "approved",
         approved_at: new Date().toISOString(),
-        order_no: suname, // use sub-username as order reference
-        proxy_username: suname,
+        order_no: orderNo,
+        proxy_username: username,
         proxy_passwd: passwd,
-        host: "global.rotgb.711proxy.com",
-        port: "10000",
-        proto: "http",
-        un: suname,
-        expire: expireDate.toISOString(),
-        un_flow: flowBytes,
+        host,
+        port,
+        proto,
+        un,
+        expire: apiExpire,
+        un_flow: unFlow,
         un_flow_used: "0",
         api_response: apiRes as never,
       })
       .eq("id", order.id);
     if (uerr) throw new Error(uerr.message);
 
-    return { ok: true, suname };
+    return { ok: true, username };
   });
 
 // --- User: refresh own orders' usage from 711proxy live API ---
