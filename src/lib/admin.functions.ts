@@ -5,7 +5,8 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const BASE = "https://server.711proxy.com/eapi";
 
-type JsonRecord = Record<string, unknown>;
+type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
+type JsonRecord = { [k: string]: JsonValue };
 
 async function fetch711Token(username: string, passwd: string): Promise<string> {
   const res = await fetch(`${BASE}/token/`, {
