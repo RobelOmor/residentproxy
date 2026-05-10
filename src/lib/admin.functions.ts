@@ -222,36 +222,50 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
     }
 
     const token = await fetch711Token(config.proxy_username, config.proxy_passwd);
-    const apiRes = await create711Order(token, order.gb_amount);
 
-    if (apiRes.code !== 200 && apiRes.code !== 0) {
-      throw new Error(`711proxy order failed: ${apiRes.msg ?? apiRes.error ?? JSON.stringify(apiRes)}`);
+    // Generate unique sub-user credentials
+    const suname = generateSubUsername();
+    const passwd = generateSubPassword();
+    // Convert GB to bytes (supports fractional, min 1 byte)
+    const flowBytes = BigInt(
+      Math.max(1, Math.round(Number(order.gb_amount) * 1024 * 1024 * 1024)),
+    ).toString();
+
+    const apiRes = await create711SubUser(token, suname, passwd, flowBytes);
+
+    const code = apiRes.code as number | undefined;
+    const httpStatus = apiRes._http_status as number | undefined;
+    const isOk = code === 200 || code === 0 || (code === undefined && httpStatus === 200);
+    if (!isOk) {
+      throw new Error(
+        `711proxy sub-user creation failed: ${apiRes.msg ?? apiRes.message ?? apiRes.error ?? JSON.stringify(apiRes)}`,
+      );
     }
 
-    const results = (apiRes.results && typeof apiRes.results === "object" && !Array.isArray(apiRes.results)
-      ? (apiRes.results as JsonRecord)
-      : apiRes) as JsonRecord;
+    // 30-day validity window from approval
+    const expireDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     const { error: uerr } = await supabase
       .from("proxy_orders")
       .update({
         status: "approved",
         approved_at: new Date().toISOString(),
-        order_no: (results.order_no as string) ?? null,
-        proxy_username: (results.username as string) ?? null,
-        proxy_passwd: (results.passwd as string) ?? null,
-        host: (results.host as string) ?? null,
-        port: (results.port as string) ?? null,
-        proto: (results.proto as string) ?? null,
-        un: (results.un as string) ?? null,
-        expire: (results.expire as string) ?? null,
-        un_flow: (results.un_flow as string) ?? null,
+        order_no: suname, // use sub-username as order reference
+        proxy_username: suname,
+        proxy_passwd: passwd,
+        host: "global.rotgb.711proxy.com",
+        port: "10000",
+        proto: "http",
+        un: suname,
+        expire: expireDate.toISOString(),
+        un_flow: flowBytes,
+        un_flow_used: "0",
         api_response: apiRes as never,
       })
       .eq("id", order.id);
     if (uerr) throw new Error(uerr.message);
 
-    return { ok: true };
+    return { ok: true, suname };
   });
 
 // --- User: refresh own orders' usage from 711proxy live API ---
