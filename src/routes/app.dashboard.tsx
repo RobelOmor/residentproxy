@@ -76,6 +76,21 @@ function UserDashboard() {
   const approved = (orders ?? []).filter((o) => o.status === "approved");
   const totalGB = approved.reduce((s, o) => s + o.gb_amount, 0);
 
+  // tick every second so countdown updates live
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // auto-refresh usage once on mount when there are approved orders
+  useEffect(() => {
+    if (approved.length > 0 && !refreshMut.isPending) {
+      refreshMut.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approved.length]);
+
   const copy = (t: string) => {
     navigator.clipboard.writeText(t);
     toast.success("Copied");
