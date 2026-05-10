@@ -81,15 +81,16 @@ function AdminOrders() {
     toast.success("Copied");
   };
 
-  const handleApprove = async (id: string) => {
-    const orderNo = (orderNoInputs[id] ?? "").trim();
-    if (!orderNo) {
-      toast.error("Enter the 711proxy username or Order No first");
+  const handleApprove = async (id: string, suggestedUser: string | null) => {
+    const typed = (orderNoInputs[id] ?? "").trim();
+    const username = typed || (suggestedUser ?? "").trim();
+    if (!username) {
+      toast.error("No username available to verify");
       return;
     }
     setBusyId(id);
     try {
-      await approve({ data: { orderId: id, orderNo } });
+      await approve({ data: { orderId: id, orderNo: username } });
       toast.success("Approved & verified on 711proxy");
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
       qc.invalidateQueries({ queryKey: ["admin-orders-summary"] });
@@ -135,7 +136,7 @@ function AdminOrders() {
             <a href="https://711proxy.com" target="_blank" rel="noreferrer" className="underline">
               711proxy
             </a>{" "}
-            dashboard, then paste back the created 711 username (or Order No if you have it) and click Approve. Server will verify on 711proxy API.
+            sub-user page, then click Approve. Server verifies the username exists on 711proxy with matching quota.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -204,14 +205,14 @@ function AdminOrders() {
 
                 <div className="flex flex-wrap items-end gap-2">
                   <div className="flex-1 min-w-[200px]">
-                    <Label className="text-xs">711proxy Username / Order No</Label>
+                    <Label className="text-xs">711proxy Username (override, optional)</Label>
                     <Input
-                      placeholder="e.g. RP8as5un or 2053370894310445056"
+                      placeholder={o.proxy_username ?? "RP..."}
                       value={orderNoInputs[o.id] ?? ""}
                       onChange={(e) => setOrderNoInputs((m) => ({ ...m, [o.id]: e.target.value }))}
                     />
                   </div>
-                  <Button disabled={busyId === o.id} onClick={() => handleApprove(o.id)}>
+                  <Button disabled={busyId === o.id} onClick={() => handleApprove(o.id, o.proxy_username)}>
                     <Check className="h-4 w-4 mr-1" /> {busyId === o.id ? "Verifying..." : "Approve"}
                   </Button>
                   <Button variant="destructive" disabled={busyId === o.id} onClick={() => handleReject(o.id)}>
