@@ -30,15 +30,7 @@ async function fetch711Balance(token: string): Promise<JsonRecord> {
   return (await res.json()) as JsonRecord;
 }
 
-async function create711Order(token: string, gb: number) {
-  const res = await fetch(`${BASE}/balance/`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return (await res.json()) as JsonRecord;
-}
-
-async function create711Order(token: string, gb: number) {
+async function create711Order(token: string, gb: number): Promise<JsonRecord> {
   const flowBytes = (BigInt(gb) * BigInt(1024) * BigInt(1024) * BigInt(1024)).toString();
   const res = await fetch(`${BASE}/order/`, {
     method: "POST",
