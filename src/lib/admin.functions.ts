@@ -261,15 +261,16 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
         const r = (json.results && typeof json.results === "object" && !Array.isArray(json.results)
           ? (json.results as JsonRecord)
           : json) as JsonRecord;
-        await supabase
-          .from("proxy_orders")
-          .update({
-            un_flow: (r.un_flow as string) ?? null,
-            un_flow_used: (r.un_flow_used as string) ?? null,
-            expire: (r.expire as string) ?? null,
-          })
-          .eq("id", o.id)
-          .eq("user_id", context.userId);
+        const { error: uerr } = await supabase.rpc("update_my_order_usage" as never, {
+          _order_id: o.id,
+          _un_flow: (r.un_flow as string) ?? null,
+          _un_flow_used: (r.un_flow_used as string) ?? null,
+          _expire: (r.expire as string) ?? null,
+        } as never);
+        if (uerr) {
+          console.error("update_my_order_usage failed", o.order_no, uerr.message);
+          continue;
+        }
         refreshed++;
       } catch (e) {
         console.error("refresh order failed", o.order_no, e);

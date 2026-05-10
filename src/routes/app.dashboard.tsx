@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,27 +24,22 @@ function formatTraffic(bytes: number): string {
   return `${(bytes / MB).toFixed(1)} MB`;
 }
 
-function parseExpire(expire: string | null, approvedAt: string | null): { date: Date | null; daysLeft: number | null } {
-  let date: Date | null = null;
-  if (expire) {
-    // 711 returns either a unix timestamp (seconds) string or ISO date
-    const num = Number(expire);
-    if (!Number.isNaN(num) && num > 0) {
-      date = new Date(num * (num < 1e12 ? 1000 : 1));
-    } else {
-      const d = new Date(expire);
-      if (!Number.isNaN(d.getTime())) date = d;
-    }
-  }
-  if (!date && approvedAt) {
-    const d = new Date(approvedAt);
-    d.setDate(d.getDate() + 30);
-    date = d;
-  }
-  if (!date) return { date: null, daysLeft: null };
+function getExpiry(approvedAt: string | null): { date: Date | null; label: string } {
+  if (!approvedAt) return { date: null, label: "Validity: 30 days" };
+  const date = new Date(approvedAt);
+  date.setDate(date.getDate() + 30);
   const ms = date.getTime() - Date.now();
-  const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
-  return { date, daysLeft: days };
+  if (ms <= 0) return { date, label: "Expired" };
+  const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+  const label =
+    days > 0
+      ? `Expires in ${days}d ${hours}h ${minutes}m ${seconds}s`
+      : `Expires in ${hours}h ${minutes}m ${seconds}s`;
+  return { date, label };
 }
 
 function UserDashboard() {
@@ -80,6 +75,21 @@ function UserDashboard() {
 
   const approved = (orders ?? []).filter((o) => o.status === "approved");
   const totalGB = approved.reduce((s, o) => s + o.gb_amount, 0);
+
+  // tick every second so countdown updates live
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // auto-refresh usage once on mount when there are approved orders
+  useEffect(() => {
+    if (approved.length > 0 && !refreshMut.isPending) {
+      refreshMut.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approved.length]);
 
   const copy = (t: string) => {
     navigator.clipboard.writeText(t);
@@ -132,7 +142,7 @@ function UserDashboard() {
                 ? Number(o.un_flow_used)
                 : Math.max(0, totalBytes - remainingBytes);
             const usedPct = totalBytes > 0 ? Math.min(100, (usedBytes / totalBytes) * 100) : 0;
-            const { date: expireDate, daysLeft } = parseExpire(o.expire, o.approved_at);
+            const { date: expireDate, label: expireLabel } = getExpiry(o.approved_at);
 
             return (
               <div key={o.id} className="border rounded-lg p-4 space-y-3 bg-card">
@@ -157,20 +167,20 @@ function UserDashboard() {
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{usedPct.toFixed(1)}% used</span>
                     <span>
-                      {daysLeft !== null
-                        ? daysLeft > 0
-                          ? `Expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`
-                          : "Expired"
-                        : "Validity: 30 days"}
+                      {expireLabel}
                       {expireDate ? ` · ${expireDate.toLocaleDateString()}` : ""}
                     </span>
                   </div>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2 text-sm font-mono pt-1">
+                <div className="grid gap-2 sm:grid-cols-3 text-sm font-mono pt-1">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Host:</span>
-                    <span>{o.host}:{o.port}</span>
+                    <span>{o.host}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Port:</span>
+                    <span>{o.port}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Proto:</span>
