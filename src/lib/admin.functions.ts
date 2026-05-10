@@ -281,7 +281,7 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
     return { ok: true, refreshed };
   });
 
-// --- Admin: reject order ---
+// --- Admin: reject order (auto-refunds balance if paid from balance) ---
 export const adminRejectOrder = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({ orderId: z.string().uuid(), note: z.string().optional() }).parse(input),
@@ -289,12 +289,10 @@ export const adminRejectOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
     const supabase = context.supabase as unknown as SbClient;
-    await assertAdmin(supabase, context.userId);
-    const { error } = await supabase
-      .from("proxy_orders")
-      .update({ status: "rejected", admin_note: data.note ?? null })
-      .eq("id", data.orderId)
-      .eq("status", "pending");
+    const { error } = await supabase.rpc("admin_reject_order_refund" as never, {
+      _order_id: data.orderId,
+      _note: data.note ?? null,
+    } as never);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
