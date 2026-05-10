@@ -20,6 +20,7 @@ function AdminConfig() {
   const qc = useQueryClient();
   const getConfig = useServerFn(adminGetConfig);
   const saveConfig = useServerFn(adminSaveConfig);
+  const test711 = useServerFn(adminTest711);
 
   useEffect(() => {
     if (!loading && role && role !== "admin") navigate({ to: "/app/dashboard" });
