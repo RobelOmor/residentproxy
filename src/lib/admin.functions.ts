@@ -37,41 +37,20 @@ async function fetch711Balance(token: string): Promise<JsonRecord> {
   return json;
 }
 
-// Generate sub-username: "rs" + 10 lowercase alphanumeric chars (total 12)
-function generateSubUsername(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let s = "rs";
-  for (let i = 0; i < 10; i++) s += chars[Math.floor(Math.random() * chars.length)];
-  return s;
-}
-
-function generateSubPassword(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let s = "";
-  for (let i = 0; i < 12; i++) s += chars[Math.floor(Math.random() * chars.length)];
-  return s;
-}
-
-// Create sub-user on 711proxy enterprise account with traffic cap.
-// Does NOT deduct enterprise USDT balance — only allocates from existing pool.
-async function create711SubUser(
+// Create order (allocates traffic from enterprise pool, returns auto-generated user:pass).
+// Endpoint: POST /eapi/order/ — body: { flow (bytes string), expire (unix-sec string), host? }
+async function create711Order(
   token: string,
-  suname: string,
-  passwd: string,
   flowBytes: string,
+  expireUnixSec: string,
 ): Promise<JsonRecord> {
-  const res = await fetch(`${BASE}/auth/sub_users/`, {
+  const res = await fetch(`${BASE}/order/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      suname,
-      passwd,
-      traff_flow_top: flowBytes,
-      activate: true,
-    }),
+    body: JSON.stringify({ flow: flowBytes, expire: expireUnixSec }),
   });
   const text = await res.text();
   let json: JsonRecord;
@@ -223,49 +202,63 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
 
     const token = await fetch711Token(config.proxy_username, config.proxy_passwd);
 
-    // Generate unique sub-user credentials
-    const suname = generateSubUsername();
-    const passwd = generateSubPassword();
     // Convert GB to bytes (supports fractional, min 1 byte)
     const flowBytes = BigInt(
       Math.max(1, Math.round(Number(order.gb_amount) * 1024 * 1024 * 1024)),
     ).toString();
 
-    const apiRes = await create711SubUser(token, suname, passwd, flowBytes);
+    // 30-day validity window from approval (unix seconds for 711 API)
+    const expireMs = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    const expireUnixSec = Math.floor(expireMs / 1000).toString();
+
+    const apiRes = await create711Order(token, flowBytes, expireUnixSec);
 
     const code = apiRes.code as number | undefined;
-    const httpStatus = apiRes._http_status as number | undefined;
-    const isOk = code === 200 || code === 0 || (code === undefined && httpStatus === 200);
+    const isOk = code === 200 || code === 0;
     if (!isOk) {
       throw new Error(
-        `711proxy sub-user creation failed: ${apiRes.msg ?? apiRes.message ?? apiRes.error ?? JSON.stringify(apiRes)}`,
+        `711proxy create order failed: ${apiRes.msg ?? apiRes.message ?? apiRes.error ?? JSON.stringify(apiRes)}`,
       );
     }
 
-    // 30-day validity window from approval
-    const expireDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const r = (apiRes.results ?? apiRes) as JsonRecord;
+    const username = (r.username as string) ?? "";
+    const passwd = (r.passwd as string) ?? "";
+    const host = (r.host as string) ?? "global.rotgb.711proxy.com";
+    const port = (r.port as string) ?? "10000";
+    const proto = (r.proto as string) ?? "http";
+    const orderNo = (r.order_no as string) ?? username;
+    const un = (r.un as string) ?? `${username}:${passwd}@${host}:${port}`;
+    const apiExpire = (r.expire as string) ?? expireUnixSec;
+    const unFlow = (r.un_flow as string) ?? flowBytes;
+
+    if (!username || !passwd) {
+      throw new Error(
+        `711proxy returned incomplete credentials: ${JSON.stringify(apiRes).slice(0, 300)}`,
+      );
+    }
 
     const { error: uerr } = await supabase
       .from("proxy_orders")
       .update({
         status: "approved",
         approved_at: new Date().toISOString(),
-        order_no: suname, // use sub-username as order reference
-        proxy_username: suname,
+        order_no: orderNo,
+        proxy_username: username,
         proxy_passwd: passwd,
-        host: "global.rotgb.711proxy.com",
-        port: "10000",
-        proto: "http",
-        un: suname,
-        expire: expireDate.toISOString(),
-        un_flow: flowBytes,
+        host,
+        port,
+        proto,
+        un,
+        expire: apiExpire,
+        un_flow: unFlow,
         un_flow_used: "0",
         api_response: apiRes as never,
       })
       .eq("id", order.id);
     if (uerr) throw new Error(uerr.message);
 
-    return { ok: true, suname };
+    return { ok: true, username };
   });
 
 // --- User: refresh own orders' usage from 711proxy live API ---
@@ -296,32 +289,28 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
     for (const o of orders) {
       if (!o.order_no) continue;
       try {
-        // Query sub-user info by suname (order_no holds suname now)
+        // Query order status by order_no
         const res = await fetch(
-          `${BASE}/auth/sub_users/?suname=${encodeURIComponent(o.order_no)}`,
+          `${BASE}/order/?order_no=${encodeURIComponent(o.order_no)}`,
           { method: "GET", headers: { Authorization: `Bearer ${token}` } },
         );
         const json = (await res.json()) as JsonRecord;
-        let r: JsonRecord = {};
         const results = json.results;
-        if (Array.isArray(results) && results.length > 0) {
-          r = results[0] as JsonRecord;
-        } else if (results && typeof results === "object") {
-          const list = (results as JsonRecord).list;
-          if (Array.isArray(list) && list.length > 0) {
-            r = list[0] as JsonRecord;
-          } else {
-            r = results as JsonRecord;
-          }
-        }
+        const r: JsonRecord =
+          results && typeof results === "object" && !Array.isArray(results)
+            ? (results as JsonRecord)
+            : Array.isArray(results) && results.length > 0
+              ? (results[0] as JsonRecord)
+              : json;
 
-        const flowTop = r.traff_flow_top ?? r.un_flow ?? null;
-        const flowUsed = r.traff_used ?? r.un_flow_used ?? null;
+        const flowTop = r.un_flow ?? null;
+        const flowUsed = r.un_flow_used ?? null;
+        const expire = r.expire ?? null;
         const { error: uerr } = await supabase.rpc("update_my_order_usage" as never, {
           _order_id: o.id,
           _un_flow: flowTop != null ? String(flowTop) : null,
           _un_flow_used: flowUsed != null ? String(flowUsed) : null,
-          _expire: null,
+          _expire: expire != null ? String(expire) : null,
         } as never);
         if (uerr) {
           console.error("update_my_order_usage failed", o.order_no, uerr.message);
