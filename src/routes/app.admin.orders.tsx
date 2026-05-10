@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Check, X, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin/orders")({
-  component: AdminOrders;
+  component: AdminOrders,
 });
 
 function AdminOrders() {
