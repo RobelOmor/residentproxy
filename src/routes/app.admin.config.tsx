@@ -100,6 +100,20 @@ function AdminConfig() {
     }
   };
 
+  const testToken = async () => {
+    if (!dashToken) { toast.error("Paste a dashboard token first"); return; }
+    setBusy(true);
+    try {
+      const res = await testDashToken({ data: { token: dashToken } });
+      if (res.ok) toast.success("Dashboard token works ✓");
+      else toast.error(res.error);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Test failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (role !== "admin" || isLoading) return <p>Loading...</p>;
 
   const balance = data?.balance as Record<string, unknown> | null;
