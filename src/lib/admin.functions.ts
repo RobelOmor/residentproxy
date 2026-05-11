@@ -434,19 +434,10 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
     const list = (orders ?? []).filter((o) => o.order_no || o.proxy_username);
     if (list.length === 0) return { ok: true, refreshed: 0 };
 
-    // Read 711 dashboard session token via service role (config table is admin-only).
-    const sUrl = process.env.SUPABASE_URL;
-    const sKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!sUrl || !sKey) throw new Error("Server not configured");
-    const admin = createClient<Database>(sUrl, sKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: cfg } = await admin
-      .from("app_config")
-      .select("proxy_dashboard_token")
-      .eq("id", 1)
-      .maybeSingle();
-    const dashToken = cfg?.proxy_dashboard_token?.trim();
+    // Read 711 dashboard session token via SECURITY DEFINER RPC (token never leaves the server).
+    const { data: tokenData, error: tokErr } = await supabase.rpc("get_dashboard_token" as never);
+    if (tokErr) throw new Error(`Failed to read dashboard token: ${tokErr.message}`);
+    const dashToken = typeof tokenData === "string" ? tokenData.trim() : "";
     if (!dashToken) {
       throw new Error("Live usage sync isn't set up yet — admin needs to paste a 711proxy dashboard token in Configuration.");
     }
