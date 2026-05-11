@@ -158,6 +158,26 @@ function AdminConfig() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Live Usage Sync (Dashboard Token)</CardTitle>
+          <CardDescription>
+            Paste your 711proxy dashboard session token so we can read live <code>used / remaining MB</code> for each sub-user.
+            <br />How: log in to <code>dashboard.711proxy.com</code> in your browser → press F12 → Application tab → Cookies → copy the <code>token</code> value → paste it here.
+            Tokens usually last 1–2 weeks; re-paste when sync starts failing.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label htmlFor="dt">Dashboard token</Label>
+            <Input id="dt" type="password" value={dashToken} onChange={(e) => setDashToken(e.target.value)} placeholder="paste cookie value here" />
+          </div>
+          <Button type="button" variant="outline" onClick={testToken} disabled={busy}>
+            Test Token
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Pricing & Payment</CardTitle>
           <CardDescription>Set selling price and USDT receive address</CardDescription>
         </CardHeader>
