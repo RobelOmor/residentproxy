@@ -101,6 +101,7 @@ export const adminSaveConfig = createServerFn({ method: "POST" })
       .object({
         proxy_username: z.string().optional(),
         proxy_passwd: z.string().optional(),
+        proxy_dashboard_token: z.string().optional(),
         price_per_gb_usdt: z.number().positive().optional(),
         usdt_address: z.string().optional(),
         usdt_network: z.string().optional(),
@@ -132,6 +133,35 @@ export const adminTest711 = createServerFn({ method: "POST" })
       const token = await fetch711Token(data.username, data.passwd);
       const balance = await fetch711Balance(token);
       return { ok: true as const, balance };
+    } catch (e) {
+      return { ok: false as const, error: e instanceof Error ? e.message : "Connection failed" };
+    }
+  });
+
+// --- Admin: test 711 dashboard session token ---
+export const adminTestDashboardToken = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ token: z.string().min(10) }).parse(input),
+  )
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
+    try {
+      const res = await fetch(`${API_BASE}/user/sub/?page=1&page_size=1&status=0`, {
+        headers: {
+          Authorization: `Bearer ${data.token}`,
+          Accept: "application/json",
+          Origin: "https://dashboard.711proxy.com",
+          Referer: "https://dashboard.711proxy.com/",
+        },
+      });
+      if (!res.ok) {
+        return { ok: false as const, error: `Token rejected (${res.status}). Re-copy a fresh token from the 711proxy dashboard.` };
+      }
+      const json = (await res.json()) as JsonRecord;
+      const total = (json.results && Array.isArray(json.results)) ? json.results.length : 0;
+      return { ok: true as const, sample_count: total };
     } catch (e) {
       return { ok: false as const, error: e instanceof Error ? e.message : "Connection failed" };
     }
@@ -195,6 +225,8 @@ async function fetch711SubUserByName(token: string, username: string): Promise<J
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
+        Origin: "https://dashboard.711proxy.com",
+        Referer: "https://dashboard.711proxy.com/",
       },
     },
   );
@@ -402,15 +434,27 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
     const list = (orders ?? []).filter((o) => o.order_no || o.proxy_username);
     if (list.length === 0) return { ok: true, refreshed: 0 };
 
-    const { data: cfg } = await supabase.rpc("get_711_credentials" as never);
-    const cred = Array.isArray(cfg) ? (cfg[0] as { username?: string; passwd?: string } | undefined) : undefined;
-    if (!cred?.username || !cred?.passwd) throw new Error("711proxy credentials not available");
-    const token = await fetch711Token(cred.username, cred.passwd);
+    // Read 711 dashboard session token via service role (config table is admin-only).
+    const sUrl = process.env.SUPABASE_URL;
+    const sKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!sUrl || !sKey) throw new Error("Server not configured");
+    const admin = createClient<Database>(sUrl, sKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: cfg } = await admin
+      .from("app_config")
+      .select("proxy_dashboard_token")
+      .eq("id", 1)
+      .maybeSingle();
+    const dashToken = cfg?.proxy_dashboard_token?.trim();
+    if (!dashToken) {
+      throw new Error("Live usage sync isn't set up yet — admin needs to paste a 711proxy dashboard token in Configuration.");
+    }
 
     let count = 0;
     for (const o of list) {
       try {
-        const snapshot = await fetch711UsageSnapshot(token, o.order_no ?? o.proxy_username ?? "", o.proxy_username);
+        const snapshot = await fetch711UsageSnapshot(dashToken, o.order_no ?? o.proxy_username ?? "", o.proxy_username);
         if (!snapshot) continue;
         const unFlow = snapshot.unFlow;
         const unFlowUsed = snapshot.unFlowUsed;

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { adminGetConfig, adminSaveConfig, adminTest711 } from "@/lib/admin.functions";
+import { adminGetConfig, adminSaveConfig, adminTest711, adminTestDashboardToken } from "@/lib/admin.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ function AdminConfig() {
   const getConfig = useServerFn(adminGetConfig);
   const saveConfig = useServerFn(adminSaveConfig);
   const test711 = useServerFn(adminTest711);
+  const testDashToken = useServerFn(adminTestDashboardToken);
 
   useEffect(() => {
     if (!loading && role && role !== "admin") navigate({ to: "/app/dashboard" });
@@ -34,6 +35,7 @@ function AdminConfig() {
 
   const [username, setUsername] = useState("");
   const [passwd, setPasswd] = useState("");
+  const [dashToken, setDashToken] = useState("");
   const [price, setPrice] = useState("3.00");
   const [usdt, setUsdt] = useState("");
   const [network, setNetwork] = useState("TRC20");
@@ -43,6 +45,7 @@ function AdminConfig() {
     if (data?.config) {
       setUsername(data.config.proxy_username ?? "");
       setPasswd(data.config.proxy_passwd ?? "");
+      setDashToken(data.config.proxy_dashboard_token ?? "");
       setPrice(String(data.config.price_per_gb_usdt ?? "3.00"));
       setUsdt(data.config.usdt_address ?? "");
       setNetwork(data.config.usdt_network ?? "TRC20");
@@ -56,6 +59,7 @@ function AdminConfig() {
         data: {
           proxy_username: username,
           proxy_passwd: passwd,
+          proxy_dashboard_token: dashToken,
           price_per_gb_usdt: Number(price),
           usdt_address: usdt,
           usdt_network: network,
@@ -89,6 +93,20 @@ function AdminConfig() {
       } else {
         toast.error(res.error);
       }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Test failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const testToken = async () => {
+    if (!dashToken) { toast.error("Paste a dashboard token first"); return; }
+    setBusy(true);
+    try {
+      const res = await testDashToken({ data: { token: dashToken } });
+      if (res.ok) toast.success("Dashboard token works ✓");
+      else toast.error(res.error);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Test failed");
     } finally {
@@ -135,6 +153,26 @@ function AdminConfig() {
               {String(balance.error)}
             </div>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Live Usage Sync (Dashboard Token)</CardTitle>
+          <CardDescription>
+            Paste your 711proxy dashboard session token so we can read live <code>used / remaining MB</code> for each sub-user.
+            <br />How: log in to <code>dashboard.711proxy.com</code> in your browser → press F12 → Application tab → Cookies → copy the <code>token</code> value → paste it here.
+            Tokens usually last 1–2 weeks; re-paste when sync starts failing.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label htmlFor="dt">Dashboard token</Label>
+            <Input id="dt" type="password" value={dashToken} onChange={(e) => setDashToken(e.target.value)} placeholder="paste cookie value here" />
+          </div>
+          <Button type="button" variant="outline" onClick={testToken} disabled={busy}>
+            Test Token
+          </Button>
         </CardContent>
       </Card>
 

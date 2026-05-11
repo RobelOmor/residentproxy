@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           id: number
           price_per_gb_usdt: number
+          proxy_dashboard_token: string | null
           proxy_passwd: string | null
           proxy_username: string | null
           updated_at: string
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           id?: number
           price_per_gb_usdt?: number
+          proxy_dashboard_token?: string | null
           proxy_passwd?: string | null
           proxy_username?: string | null
           updated_at?: string
@@ -36,6 +38,7 @@ export type Database = {
         Update: {
           id?: number
           price_per_gb_usdt?: number
+          proxy_dashboard_token?: string | null
           proxy_passwd?: string | null
           proxy_username?: string | null
           updated_at?: string
