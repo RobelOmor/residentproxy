@@ -292,6 +292,7 @@ export type Database = {
           username: string
         }[]
       }
+      get_dashboard_token: { Args: never; Returns: string }
       get_public_pricing: {
         Args: never
         Returns: {
