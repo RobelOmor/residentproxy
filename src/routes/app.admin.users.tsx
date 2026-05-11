@@ -159,7 +159,7 @@ function AdminUsers() {
                     </TableCell>
                   </TableRow>
                   {expanded[u.id] && (
-                    <TableRow key={`${u.id}-expand`}>
+                    <TableRow>
                       <TableCell colSpan={8} className="bg-muted/30 p-4">
                         {u.orders.length === 0 ? (
                           <p className="text-sm text-muted-foreground">No orders.</p>
