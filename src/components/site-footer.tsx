@@ -11,7 +11,7 @@ export function SiteFooter() {
         <div className="space-y-3">
           <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold">
             {brand.site_logo_url ? (
-              <img src={brand.site_logo_url} alt={brand.site_name} className="h-7 w-auto" />
+              <img src={brand.site_logo_url} alt={brand.site_name ?? ""} className="h-7 w-auto" />
             ) : (
               <Globe2 className="h-5 w-5 text-primary" />
             )}
