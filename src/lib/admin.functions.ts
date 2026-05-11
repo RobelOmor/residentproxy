@@ -101,6 +101,7 @@ export const adminSaveConfig = createServerFn({ method: "POST" })
       .object({
         proxy_username: z.string().optional(),
         proxy_passwd: z.string().optional(),
+        proxy_dashboard_token: z.string().optional(),
         price_per_gb_usdt: z.number().positive().optional(),
         usdt_address: z.string().optional(),
         usdt_network: z.string().optional(),
