@@ -360,36 +360,29 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!cfg?.proxy_username || !cfg?.proxy_passwd) throw new Error("711proxy credentials not configured");
 
-    const token = await fetch711Token(cfg.proxy_username, cfg.proxy_passwd);
-    const snapshot = await fetch711UsageSnapshot(token, data.orderNo, order.proxy_username);
-    if (!snapshot) {
-      throw new Error(
-        `711proxy user/order "${data.orderNo}" not found. Paste the created sub-user username (for manual create) or the real 711 Order No.`,
-      );
+    // NOTE: 711proxy's sub-user list endpoint requires a dashboard JWT (not the EAPI token),
+    // so server-side verification is not possible. We trust the admin's click — the admin
+    // manually created the sub-user on 711proxy with the suggested user/pass/MB-limit before
+    // approving here. Live usage is then synced via the cron + manual refresh button.
+    // Connectivity sanity-check: make sure our 711 credentials still work.
+    try {
+      await fetch711Token(cfg.proxy_username, cfg.proxy_passwd);
+    } catch (e) {
+      throw new Error(`711proxy login failed: ${e instanceof Error ? e.message : String(e)}`);
     }
 
-    // Sanity-check the allocated traffic matches what user paid for (allow >= required)
     const requiredBytes = BigInt(Math.round(Number(order.gb_amount) * 1024 * 1024 * 1024));
-    const allocated = snapshot.allocatedBytes;
-    // tolerance: allow 1% under
-    const minAcceptable = (requiredBytes * 99n) / 100n;
-    if (allocated != null && allocated < minAcceptable) {
-      throw new Error(
-        `Traffic mismatch: order needs ${requiredBytes.toString()} bytes but 711 sub-user has only ${allocated.toString()} bytes. Update the sub-user limit on 711 and try again.`,
-      );
-    }
-
-    const suname = data.suname ?? snapshot.suname ?? order.proxy_username ?? undefined;
-    const passwd = data.passwd ?? snapshot.passwd ?? order.proxy_passwd ?? undefined;
+    const suname = data.suname ?? order.proxy_username ?? data.orderNo;
+    const passwd = data.passwd ?? order.proxy_passwd ?? undefined;
 
     const { error } = await supabase.rpc("admin_approve_order_manual" as never, {
       _order_id: data.orderId,
-      _order_no: snapshot.resolvedOrderNo,
+      _order_no: data.orderNo,
       _suname: suname ?? null,
       _passwd: passwd ?? null,
-      _un_flow: snapshot.unFlow,
-      _un_flow_used: snapshot.unFlowUsed ?? "0",
-      _expire: snapshot.expire,
+      _un_flow: requiredBytes.toString(),
+      _un_flow_used: "0",
+      _expire: null,
     } as never);
     if (error) throw new Error(error.message);
     return { ok: true };
