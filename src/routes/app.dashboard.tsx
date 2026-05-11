@@ -84,6 +84,9 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
   const [countryName, setCountryName] = useState<string | null>(null);
   const [countryOpen, setCountryOpen] = useState(false);
   const [countryQuery, setCountryQuery] = useState("");
+  const [proto, setProto] = useState<"http" | "https" | "socks5">(
+    (o.proto as "http" | "https" | "socks5") || "http",
+  );
 
   const baseUser = o.proxy_username ?? "";
   const dynamicUser = countryCode
@@ -91,6 +94,7 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
     : `${baseUser}-zone-custom`;
   const port = o.port || "10000";
   const connString = `${region.ip}:${port}:${dynamicUser}:${o.proxy_passwd ?? ""}`;
+  const protoUrl = `${proto}://${dynamicUser}:${o.proxy_passwd ?? ""}@${region.ip}:${port}`;
 
   const filteredCountries = COUNTRIES.filter(
     (c) =>
