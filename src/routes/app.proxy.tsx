@@ -72,6 +72,7 @@ function BuyProxy() {
   const submit = async () => {
     if (!user) return;
     if (insufficient) return toast.error("Insufficient balance. Please top-up first.");
+    setConfirmOpen(false);
     setBusy(true);
     const { error } = await supabase.rpc("purchase_proxy_with_balance" as never, {
       _gb: gb,
