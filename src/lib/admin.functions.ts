@@ -586,3 +586,48 @@ export const adminRejectTopup = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// --- Public: site branding (logo, favicon, title, etc.) ---
+export const getPublicSiteConfig = createServerFn({ method: "GET" }).handler(async () => {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return null;
+  const sb = createClient<Database>(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await sb.rpc("get_public_site_config" as never);
+  if (error) {
+    console.error("get_public_site_config rpc error:", error.message);
+    return null;
+  }
+  const row = Array.isArray(data) ? (data as unknown as JsonRecord[])[0] : (data as unknown as JsonRecord);
+  return row ?? null;
+});
+
+// --- Admin: save site branding ---
+export const adminSaveSiteConfig = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        site_name: z.string().optional().nullable(),
+        site_title: z.string().optional().nullable(),
+        site_tagline: z.string().optional().nullable(),
+        site_description: z.string().optional().nullable(),
+        site_logo_url: z.string().optional().nullable(),
+        site_favicon_url: z.string().optional().nullable(),
+        site_og_image_url: z.string().optional().nullable(),
+        site_support_email: z.string().optional().nullable(),
+      })
+      .parse(input),
+  )
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
+    const { error } = await supabase
+      .from("app_config")
+      .update({ ...data, updated_at: new Date().toISOString() } as never)
+      .eq("id", 1);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
