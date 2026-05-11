@@ -147,13 +147,13 @@ function BuyProxy() {
           </div>
 
           {/* Pricing card */}
-          <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <div>
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">
                   Current Rate
                 </div>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-xl sm:text-2xl font-bold text-blue-600">
                   ${rate.toFixed(2)}
                   <span className="text-sm text-muted-foreground font-normal">/GB</span>
                 </div>
@@ -162,7 +162,7 @@ function BuyProxy() {
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">
                   Total Amount
                 </div>
-                <div className="text-4xl font-bold text-slate-900 dark:text-foreground">
+                <div className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-foreground">
                   ${cost.toFixed(2)}
                 </div>
                 <div className="text-xs text-muted-foreground">USDT</div>
