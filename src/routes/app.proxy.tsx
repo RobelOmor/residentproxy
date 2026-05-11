@@ -161,9 +161,57 @@ function BuyProxy() {
                   <Link to="/app/billing">Top-up Balance</Link>
                 </Button>
               )}
-              <Button size="lg" onClick={submit} disabled={busy || insufficient || !pricing}>
+              <Button
+                size="lg"
+                onClick={() => setConfirmOpen(true)}
+                disabled={busy || insufficient || !pricing}
+              >
                 {busy ? "Processing..." : "Purchase Now"}
               </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm purchase</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 pt-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Traffic amount</span>
+                  <span className="font-semibold text-foreground">{formatMB(mb)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Price per GB</span>
+                  <span className="font-semibold text-foreground">${pricePerGB.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between border-t pt-2">
+                  <span className="text-muted-foreground">Total cost</span>
+                  <span className="font-bold text-foreground">${cost.toFixed(4)} USDT</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Balance after</span>
+                  <span className="font-semibold text-foreground">
+                    ${(balance - cost).toFixed(2)} USDT
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground pt-2">
+                  Once confirmed, the amount is deducted immediately and the order goes to admin
+                  for provisioning. This action cannot be undone.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={submit} disabled={busy}>
+              {busy ? "Processing..." : "Confirm & Pay"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
             </div>
           </div>
         </CardContent>
