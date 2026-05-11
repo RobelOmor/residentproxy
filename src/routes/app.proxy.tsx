@@ -83,12 +83,12 @@ function BuyProxy() {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">
           Buy Residential Proxy
         </h1>
         <Card className="px-4 py-2">
           <div className="text-xs text-muted-foreground">Available Balance</div>
-          <div className="text-xl font-bold">${balance.toFixed(2)} USDT</div>
+          <div className="text-lg sm:text-xl font-bold">${balance.toFixed(2)} USDT</div>
         </Card>
       </div>
 
