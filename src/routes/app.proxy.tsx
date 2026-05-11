@@ -42,6 +42,7 @@ function BuyProxy() {
   const fetchPricing = useServerFn(getPublicPricing);
   const [mb, setMb] = useState(1024);
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const { data: pricing } = useQuery({
     queryKey: ["pricing"],
