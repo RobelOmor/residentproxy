@@ -79,6 +79,25 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
   const usedPct = totalBytes > 0 ? Math.min(100, (usedBytes / totalBytes) * 100) : 0;
   const { date: expireDate, label: expireLabel } = getExpiry(o.approved_at);
 
+  const [region, setRegion] = useState<Region>(REGIONS[0]);
+  const [countryCode, setCountryCode] = useState<string | null>(null);
+  const [countryName, setCountryName] = useState<string | null>(null);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [countryQuery, setCountryQuery] = useState("");
+
+  const baseUser = o.proxy_username ?? "";
+  const dynamicUser = countryCode
+    ? `${baseUser}-zone-custom-region-${countryCode}`
+    : `${baseUser}-zone-custom`;
+  const port = o.port || "10000";
+  const connString = `${region.ip}:${port}:${dynamicUser}:${o.proxy_passwd ?? ""}`;
+
+  const filteredCountries = COUNTRIES.filter(
+    (c) =>
+      c.name.toLowerCase().includes(countryQuery.toLowerCase()) ||
+      c.code.toLowerCase().includes(countryQuery.toLowerCase()),
+  );
+
   const copy = (t: string) => {
     navigator.clipboard.writeText(t);
     toast.success("Copied");
@@ -99,7 +118,7 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
       </div>
 
       <div className="space-y-2">
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between text-sm flex-wrap gap-2">
           <span className="text-muted-foreground">
             Used: <span className="font-semibold text-foreground">{formatTraffic(usedBytes)}</span>
           </span>
@@ -111,7 +130,7 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
           </span>
         </div>
         <Progress value={usedPct} />
-        <div className="flex justify-between text-xs text-muted-foreground">
+        <div className="flex justify-between text-xs text-muted-foreground flex-wrap gap-1">
           <span>{usedPct.toFixed(1)}% used</span>
           <span>
             {expireLabel}
@@ -120,21 +139,93 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3 text-sm font-mono pt-1">
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Host:</span><span>{o.host}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Port:</span><span>{o.port}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Proto:</span><span>{o.proto}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">User:</span><span>{o.proxy_username}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Pass:</span><span>{o.proxy_passwd}</span></div>
-      </div>
-      {o.un && (
-        <div className="flex items-center gap-2 pt-1">
-          <code className="flex-1 bg-muted rounded px-2 py-1 text-xs break-all">{o.un}</code>
-          <Button size="icon" variant="outline" onClick={() => copy(o.un!)}>
-            <Copy className="h-4 w-4" />
+      {/* Region selector */}
+      <div className="pt-2 border-t space-y-2">
+        <div className="text-xs text-muted-foreground">Choose Region</div>
+        <div className="flex flex-wrap gap-2">
+          {REGIONS.map((r) => {
+            const active = region.code === r.code && !countryCode;
+            return (
+              <Button
+                key={r.code}
+                size="sm"
+                variant={active ? "default" : "outline"}
+                onClick={() => {
+                  setRegion(r);
+                  setCountryCode(null);
+                  setCountryName(null);
+                }}
+              >
+                <Globe className="h-3 w-3 mr-1" />
+                {r.label}
+              </Button>
+            );
+          })}
+          <Button
+            size="sm"
+            variant={countryCode ? "default" : "outline"}
+            onClick={() => setCountryOpen(true)}
+          >
+            {countryCode ? `Country: ${countryName} (${countryCode})` : "Custom Country"}
           </Button>
         </div>
-      )}
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-3 text-sm font-mono pt-1">
+        <div className="flex items-center gap-2"><span className="text-muted-foreground">Host:</span><span>{region.ip}</span></div>
+        <div className="flex items-center gap-2"><span className="text-muted-foreground">Port:</span><span>{port}</span></div>
+        <div className="flex items-center gap-2"><span className="text-muted-foreground">Proto:</span><span>{o.proto}</span></div>
+        <div className="flex items-center gap-2 sm:col-span-2"><span className="text-muted-foreground">User:</span><span className="break-all">{dynamicUser}</span></div>
+        <div className="flex items-center gap-2"><span className="text-muted-foreground">Pass:</span><span>{o.proxy_passwd}</span></div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <code className="flex-1 bg-muted rounded px-2 py-1 text-xs break-all">{connString}</code>
+        <Button size="icon" variant="outline" onClick={() => copy(connString)}>
+          <Copy className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <Dialog open={countryOpen} onOpenChange={setCountryOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Select Custom Country</DialogTitle>
+            <DialogDescription>
+              Pick a country to route through. Username becomes{" "}
+              <code className="text-xs">{baseUser}-zone-custom-region-XX</code>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search country..."
+              value={countryQuery}
+              onChange={(e) => setCountryQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <div className="max-h-[50vh] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {filteredCountries.map((c) => (
+              <button
+                key={c.code}
+                onClick={() => {
+                  setCountryCode(c.code);
+                  setCountryName(c.name);
+                  setCountryOpen(false);
+                  setCountryQuery("");
+                }}
+                className="text-left px-3 py-2 rounded hover:bg-muted text-sm flex justify-between items-center"
+              >
+                <span>{c.name}</span>
+                <span className="font-mono text-xs text-muted-foreground">{c.code}</span>
+              </button>
+            ))}
+            {filteredCountries.length === 0 && (
+              <p className="text-sm text-muted-foreground p-3">No countries match.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
