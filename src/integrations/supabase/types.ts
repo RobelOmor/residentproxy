@@ -21,6 +21,14 @@ export type Database = {
           proxy_dashboard_token: string | null
           proxy_passwd: string | null
           proxy_username: string | null
+          site_description: string | null
+          site_favicon_url: string | null
+          site_logo_url: string | null
+          site_name: string | null
+          site_og_image_url: string | null
+          site_support_email: string | null
+          site_tagline: string | null
+          site_title: string | null
           updated_at: string
           usdt_address: string | null
           usdt_network: string | null
@@ -31,6 +39,14 @@ export type Database = {
           proxy_dashboard_token?: string | null
           proxy_passwd?: string | null
           proxy_username?: string | null
+          site_description?: string | null
+          site_favicon_url?: string | null
+          site_logo_url?: string | null
+          site_name?: string | null
+          site_og_image_url?: string | null
+          site_support_email?: string | null
+          site_tagline?: string | null
+          site_title?: string | null
           updated_at?: string
           usdt_address?: string | null
           usdt_network?: string | null
@@ -41,6 +57,14 @@ export type Database = {
           proxy_dashboard_token?: string | null
           proxy_passwd?: string | null
           proxy_username?: string | null
+          site_description?: string | null
+          site_favicon_url?: string | null
+          site_logo_url?: string | null
+          site_name?: string | null
+          site_og_image_url?: string | null
+          site_support_email?: string | null
+          site_tagline?: string | null
+          site_title?: string | null
           updated_at?: string
           usdt_address?: string | null
           usdt_network?: string | null
@@ -299,6 +323,19 @@ export type Database = {
           price_per_gb_usdt: number
           usdt_address: string
           usdt_network: string
+        }[]
+      }
+      get_public_site_config: {
+        Args: never
+        Returns: {
+          site_description: string
+          site_favicon_url: string
+          site_logo_url: string
+          site_name: string
+          site_og_image_url: string
+          site_support_email: string
+          site_tagline: string
+          site_title: string
         }[]
       }
       has_role: {

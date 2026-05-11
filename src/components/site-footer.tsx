@@ -1,18 +1,24 @@
 import { Link } from "@tanstack/react-router";
 import { Globe2, Mail } from "lucide-react";
+import { useSiteBrand } from "@/components/site-brand";
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
+  const brand = useSiteBrand();
   return (
     <footer className="border-t bg-card/50 mt-20">
       <div className="container mx-auto px-4 py-12 grid gap-8 md:grid-cols-4">
         <div className="space-y-3">
           <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold">
-            <Globe2 className="h-5 w-5 text-primary" />
-            <span>ResidentProxy.com</span>
+            {brand.site_logo_url ? (
+              <img src={brand.site_logo_url} alt={brand.site_name ?? ""} className="h-7 w-auto" />
+            ) : (
+              <Globe2 className="h-5 w-5 text-primary" />
+            )}
+            <span>{brand.site_name}</span>
           </Link>
           <p className="text-sm text-muted-foreground">
-            Premium residential proxies with HTTP, HTTPS &amp; SOCKS5 support. Pay with USDT, get instant access.
+            {brand.site_tagline || brand.site_description}
           </p>
         </div>
 

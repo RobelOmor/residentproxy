@@ -57,55 +57,9 @@
   --font-sans: "Lora", Georgia, serif;
 }
 
+/* Warm terracotta + sage palette — applied site-wide so public pages match the dashboard */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --primary-glow: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --success: oklch(0.55 0.14 150);
-  --success-foreground: oklch(0.984 0.003 247.858);
-  --warning: oklch(0.78 0.16 70);
-  --warning-foreground: oklch(0.2 0.05 70);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
-  --gradient-primary: linear-gradient(135deg, hsl(12 62% 48%), hsl(18 78% 60%));
-  --gradient-success: linear-gradient(135deg, hsl(142 50% 38%), hsl(155 45% 50%));
-  --gradient-hero: radial-gradient(circle at 20% 20%, hsl(12 62% 48% / 0.12), transparent 50%),
-    radial-gradient(circle at 80% 70%, hsl(142 28% 45% / 0.10), transparent 55%),
-    linear-gradient(180deg, hsl(38 32% 96%), hsl(36 28% 94%));
-  --shadow-elegant: 0 10px 30px -10px hsl(12 62% 48% / 0.25);
-}
-
-/* Themed scope for authenticated app — terracotta + sage warm palette */
-.app-themed {
   --background: hsl(38 32% 96%);
   --foreground: hsl(24 14% 14%);
   --card: hsl(36 28% 94%);
@@ -130,6 +84,11 @@
   --border: hsl(30 18% 84%);
   --input: hsl(30 18% 84%);
   --ring: hsl(12 62% 48%);
+  --chart-1: hsl(12 62% 48%);
+  --chart-2: hsl(142 28% 45%);
+  --chart-3: hsl(18 78% 60%);
+  --chart-4: hsl(32 88% 50%);
+  --chart-5: hsl(142 50% 38%);
   --sidebar: hsl(36 28% 94%);
   --sidebar-foreground: hsl(24 14% 14%);
   --sidebar-primary: hsl(12 62% 48%);
@@ -138,43 +97,25 @@
   --sidebar-accent-foreground: hsl(24 14% 14%);
   --sidebar-border: hsl(30 18% 84%);
   --sidebar-ring: hsl(12 62% 48%);
-  background-color: var(--background);
-  color: var(--foreground);
+  --gradient-primary: linear-gradient(135deg, hsl(12 62% 48%), hsl(18 78% 60%));
+  --gradient-success: linear-gradient(135deg, hsl(142 50% 38%), hsl(155 45% 50%));
+  --gradient-hero: radial-gradient(circle at 20% 20%, hsl(12 62% 48% / 0.12), transparent 50%),
+    radial-gradient(circle at 80% 70%, hsl(142 28% 45% / 0.10), transparent 55%),
+    linear-gradient(180deg, hsl(38 32% 96%), hsl(36 28% 94%));
+  --shadow-elegant: 0 10px 30px -10px hsl(12 62% 48% / 0.25);
 }
 
-.app-themed,
-.app-themed .font-body {
-  font-family: var(--font-body);
-}
+/* Authenticated app shell keeps the same palette (alias retained for backward compatibility) */
+.app-themed { background-color: var(--background); color: var(--foreground); }
 
-.app-themed h1,
-.app-themed h2,
-.app-themed h3,
-.app-themed h4,
-.app-themed h5,
-.app-themed h6 {
-  font-family: var(--font-display);
-  letter-spacing: -0.01em;
-}
+body, .font-body { font-family: var(--font-body); }
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); letter-spacing: -0.01em; }
+code, pre, .font-mono { font-family: var(--font-mono); }
 
-.app-themed code,
-.app-themed pre,
-.app-themed .font-mono {
-  font-family: var(--font-mono);
-}
-
-.app-themed .bg-gradient-primary {
-  background-image: var(--gradient-primary);
-}
-.app-themed .bg-gradient-success {
-  background-image: var(--gradient-success);
-}
-.app-themed .bg-gradient-hero {
-  background-image: var(--gradient-hero);
-}
-.app-themed .shadow-elegant {
-  box-shadow: var(--shadow-elegant);
-}
+.bg-gradient-primary { background-image: var(--gradient-primary); }
+.bg-gradient-success { background-image: var(--gradient-success); }
+.bg-gradient-hero { background-image: var(--gradient-hero); }
+.shadow-elegant { box-shadow: var(--shadow-elegant); }
 
 .dark {
   --background: oklch(0.129 0.042 264.695);
