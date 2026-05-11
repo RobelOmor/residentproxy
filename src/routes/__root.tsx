@@ -10,6 +10,7 @@ import {
 import { AuthProvider } from "@/hooks/use-auth";
 import { AuthModalProvider } from "@/components/auth-modal";
 import { Toaster } from "@/components/ui/sonner";
+import { BrandHeadSync } from "@/components/site-brand";
 
 import appCss from "../styles.css?url";
 
@@ -118,6 +119,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <AuthModalProvider>
+          <BrandHeadSync />
           <Outlet />
           <Toaster />
         </AuthModalProvider>
