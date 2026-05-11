@@ -82,10 +82,9 @@ function AdminOrders() {
   };
 
   const handleApprove = async (id: string, suggestedUser: string | null) => {
-    const typed = (orderNoInputs[id] ?? "").trim();
-    const username = typed || (suggestedUser ?? "").trim();
+    const username = (suggestedUser ?? "").trim();
     if (!username) {
-      toast.error("No username available to verify");
+      toast.error("No suggested username on this order");
       return;
     }
     setBusyId(id);
