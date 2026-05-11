@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useAuthModal } from "@/components/auth-modal";
+import { useSiteBrand } from "@/components/site-brand";
 import { Menu, X, Globe2 } from "lucide-react";
 
 const NAV = [
@@ -17,14 +18,24 @@ const NAV = [
 export function SiteHeader() {
   const { user } = useAuth();
   const { open } = useAuthModal();
+  const brand = useSiteBrand();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const brandName = brand.site_name || "ResidentProxy.com";
+  const [namePrefix, nameSuffix] = brandName.includes(".")
+    ? [brandName.slice(0, brandName.lastIndexOf(".")), brandName.slice(brandName.lastIndexOf("."))]
+    : [brandName, ""];
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/85 backdrop-blur">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold">
-          <Globe2 className="h-6 w-6 text-primary" />
-          <span>ResidentProxy<span className="text-primary">.com</span></span>
+          {brand.site_logo_url ? (
+            <img src={brand.site_logo_url} alt={brandName} className="h-8 w-auto" />
+          ) : (
+            <Globe2 className="h-6 w-6 text-primary" />
+          )}
+          <span>{namePrefix}<span className="text-primary">{nameSuffix}</span></span>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-7">
