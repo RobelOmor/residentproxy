@@ -8,30 +8,17 @@ const API_BASE = "https://server.711proxy.com";
 type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
 type JsonRecord = { [k: string]: JsonValue };
 
-async function fetch711Token(username: string, passwd: string): Promise<string> {
-  const res = await fetch(`${EAPI_BASE}/token/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, passwd }),
-  });
-  const json = (await res.json()) as { code?: number; message?: string; results?: { token?: string } };
-  const token = json.results?.token;
-  if (typeof token !== "string") throw new Error(json.message ?? "711 login failed");
-  return token;
-}
-
-async function fetch711OrderInfo(token: string, orderNo: string): Promise<JsonRecord> {
-  const res = await fetch(`${EAPI_BASE}/order/?order_no=${encodeURIComponent(orderNo)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const text = await res.text();
-  try { return JSON.parse(text) as JsonRecord; } catch { return { raw: text }; }
-}
-
 async function fetch711SubUserByName(token: string, username: string): Promise<JsonRecord | null> {
   const res = await fetch(
     `${API_BASE}/user/sub/?page=1&page_size=999&status=0&name=${encodeURIComponent(username)}`,
-    { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        Origin: "https://dashboard.711proxy.com",
+        Referer: "https://dashboard.711proxy.com/",
+      },
+    },
   );
   if (!res.ok) return null;
   const text = await res.text();
