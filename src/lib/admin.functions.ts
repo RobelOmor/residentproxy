@@ -435,9 +435,9 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
     if (list.length === 0) return { ok: true, refreshed: 0 };
 
     // Read 711 dashboard session token via SECURITY DEFINER RPC (token never leaves the server).
-    const { data: tokenData, error: tokErr } = await supabase.rpc("get_dashboard_token" as never);
-    if (tokErr) throw new Error(`Failed to read dashboard token: ${tokErr.message}`);
-    const dashToken = typeof tokenData === "string" ? (tokenData as string).trim() : "";
+    const tokRes = await supabase.rpc("get_dashboard_token" as never);
+    if (tokRes.error) throw new Error(`Failed to read dashboard token: ${tokRes.error.message}`);
+    const dashToken = typeof tokRes.data === "string" ? (tokRes.data as string).trim() : "";
     if (!dashToken) {
       throw new Error("Live usage sync isn't set up yet — admin needs to paste a 711proxy dashboard token in Configuration.");
     }
