@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-const EAPI_BASE = "https://server.711proxy.com/eapi";
 const API_BASE = "https://server.711proxy.com";
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
@@ -54,9 +53,10 @@ export const Route = createFileRoute("/api/public/hooks/sync-usage")({
           auth: { persistSession: false, autoRefreshToken: false },
         });
 
-        const { data: cfg } = await sb.from("app_config").select("proxy_username, proxy_passwd").eq("id", 1).maybeSingle();
-        if (!cfg?.proxy_username || !cfg?.proxy_passwd) {
-          return new Response(JSON.stringify({ ok: false, error: "no creds" }), { status: 200 });
+        const { data: cfg } = await sb.from("app_config").select("proxy_dashboard_token").eq("id", 1).maybeSingle();
+        const token = cfg?.proxy_dashboard_token?.trim();
+        if (!token) {
+          return new Response(JSON.stringify({ ok: false, error: "no dashboard token" }), { status: 200 });
         }
 
         const { data: orders } = await sb
@@ -66,40 +66,22 @@ export const Route = createFileRoute("/api/public/hooks/sync-usage")({
         const list = (orders ?? []).filter((o) => o.order_no || o.proxy_username);
         if (list.length === 0) return new Response(JSON.stringify({ ok: true, refreshed: 0 }));
 
-        let token: string;
-        try { token = await fetch711Token(cfg.proxy_username, cfg.proxy_passwd); }
-        catch (e) { return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 200 }); }
-
         let count = 0;
         for (const o of list) {
           try {
-            const id = (o.order_no ?? o.proxy_username ?? "").trim();
-            if (!id) continue;
-            let unFlow: string | null = null;
-            let unFlowUsed: string | null = null;
-            let expire: string | null = null;
-
-            if (/^\d+$/.test(id)) {
-              const info = await fetch711OrderInfo(token, id);
-              unFlow = info.un_flow != null ? String(info.un_flow) : null;
-              unFlowUsed = info.un_flow_used != null ? String(info.un_flow_used) : null;
-              expire = info.expire != null ? String(info.expire) : null;
-            }
-            if (unFlow == null && unFlowUsed == null) {
-              const uname = o.proxy_username ?? id;
-              const sub = await fetch711SubUserByName(token, uname);
-              if (!sub) continue;
-              const allocated = parseTrafficTextToBytes(sub.traff_flow_top);
-              const used = parseTrafficTextToBytes(sub.traff_used) ?? 0n;
-              const remaining = allocated == null ? null : allocated > used ? allocated - used : 0n;
-              unFlow = remaining == null ? null : remaining.toString();
-              unFlowUsed = used.toString();
-              expire = sub.expire != null ? String(sub.expire) : null;
-            }
-            if (unFlow == null && unFlowUsed == null) continue;
+            const uname = (o.proxy_username ?? o.order_no ?? "").trim();
+            if (!uname) continue;
+            const sub = await fetch711SubUserByName(token, uname);
+            if (!sub) continue;
+            const allocated = parseTrafficTextToBytes(sub.traff_flow_top);
+            const used = parseTrafficTextToBytes(sub.traff_used) ?? 0n;
+            const remaining = allocated == null ? null : allocated > used ? allocated - used : 0n;
+            const unFlow = remaining == null ? null : remaining.toString();
+            const unFlowUsed = used.toString();
+            const expire = sub.expire != null ? String(sub.expire) : null;
             await sb.from("proxy_orders").update({
               un_flow: unFlow ?? undefined,
-              un_flow_used: unFlowUsed ?? undefined,
+              un_flow_used: unFlowUsed,
               expire: expire ?? undefined,
             }).eq("id", o.id);
             count++;
