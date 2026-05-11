@@ -7,9 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Copy, RefreshCw } from "lucide-react";
+import { Copy, RefreshCw, Globe, Search } from "lucide-react";
 import { toast } from "sonner";
 import { refreshMyOrdersUsage } from "@/lib/admin.functions";
+import { REGIONS, COUNTRIES, type Region } from "@/lib/proxy-regions";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: UserDashboard,
