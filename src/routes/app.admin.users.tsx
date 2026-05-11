@@ -128,9 +128,8 @@ function AdminUsers() {
             </TableHeader>
             <TableBody>
               {users.map((u) => (
-                <>
+                <Fragment key={u.id}>
                   <TableRow
-                    key={u.id}
                     className="cursor-pointer"
                     onClick={() => toggle(u.id)}
                   >
