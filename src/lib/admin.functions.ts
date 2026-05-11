@@ -195,6 +195,8 @@ async function fetch711SubUserByName(token: string, username: string): Promise<J
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
+        Origin: "https://dashboard.711proxy.com",
+        Referer: "https://dashboard.711proxy.com/",
       },
     },
   );
