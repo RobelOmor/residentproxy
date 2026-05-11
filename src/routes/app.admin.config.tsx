@@ -59,6 +59,7 @@ function AdminConfig() {
         data: {
           proxy_username: username,
           proxy_passwd: passwd,
+          proxy_dashboard_token: dashToken,
           price_per_gb_usdt: Number(price),
           usdt_address: usdt,
           usdt_network: network,
