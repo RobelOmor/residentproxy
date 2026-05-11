@@ -21,6 +21,7 @@ function AdminConfig() {
   const getConfig = useServerFn(adminGetConfig);
   const saveConfig = useServerFn(adminSaveConfig);
   const test711 = useServerFn(adminTest711);
+  const testDashToken = useServerFn(adminTestDashboardToken);
 
   useEffect(() => {
     if (!loading && role && role !== "admin") navigate({ to: "/app/dashboard" });
@@ -34,6 +35,7 @@ function AdminConfig() {
 
   const [username, setUsername] = useState("");
   const [passwd, setPasswd] = useState("");
+  const [dashToken, setDashToken] = useState("");
   const [price, setPrice] = useState("3.00");
   const [usdt, setUsdt] = useState("");
   const [network, setNetwork] = useState("TRC20");
@@ -43,6 +45,7 @@ function AdminConfig() {
     if (data?.config) {
       setUsername(data.config.proxy_username ?? "");
       setPasswd(data.config.proxy_passwd ?? "");
+      setDashToken(data.config.proxy_dashboard_token ?? "");
       setPrice(String(data.config.price_per_gb_usdt ?? "3.00"));
       setUsdt(data.config.usdt_address ?? "");
       setNetwork(data.config.usdt_network ?? "TRC20");
