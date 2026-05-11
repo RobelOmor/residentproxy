@@ -239,7 +239,7 @@ function AdminUsers() {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               ))}
               {users.length === 0 && (
                 <TableRow>
