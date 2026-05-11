@@ -17,6 +17,7 @@ import { Route as AppProxyRouteImport } from './routes/app.proxy'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppAdminIndexRouteImport } from './routes/app.admin.index'
+import { Route as AppAdminUsersRouteImport } from './routes/app.admin.users'
 import { Route as AppAdminSubusersRouteImport } from './routes/app.admin.subusers'
 import { Route as AppAdminOrdersRouteImport } from './routes/app.admin.orders'
 import { Route as AppAdminConfigRouteImport } from './routes/app.admin.config'
@@ -62,6 +63,11 @@ const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminSubusersRoute = AppAdminSubusersRouteImport.update({
   id: '/admin/subusers',
   path: '/admin/subusers',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
+  '/app/admin/users': typeof AppAdminUsersRoute
   '/app/admin/': typeof AppAdminIndexRoute
   '/api/public/hooks/sync-usage': typeof ApiPublicHooksSyncUsageRoute
 }
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
+  '/app/admin/users': typeof AppAdminUsersRoute
   '/app/admin': typeof AppAdminIndexRoute
   '/api/public/hooks/sync-usage': typeof ApiPublicHooksSyncUsageRoute
 }
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
+  '/app/admin/users': typeof AppAdminUsersRoute
   '/app/admin/': typeof AppAdminIndexRoute
   '/api/public/hooks/sync-usage': typeof ApiPublicHooksSyncUsageRoute
 }
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/app/admin/config'
     | '/app/admin/orders'
     | '/app/admin/subusers'
+    | '/app/admin/users'
     | '/app/admin/'
     | '/api/public/hooks/sync-usage'
   fileRoutesByTo: FileRoutesByTo
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/app/admin/config'
     | '/app/admin/orders'
     | '/app/admin/subusers'
+    | '/app/admin/users'
     | '/app/admin'
     | '/api/public/hooks/sync-usage'
   id:
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/app/admin/config'
     | '/app/admin/orders'
     | '/app/admin/subusers'
+    | '/app/admin/users'
     | '/app/admin/'
     | '/api/public/hooks/sync-usage'
   fileRoutesById: FileRoutesById
@@ -236,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin/users': {
+      id: '/app/admin/users'
+      path: '/admin/users'
+      fullPath: '/app/admin/users'
+      preLoaderRoute: typeof AppAdminUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/admin/subusers': {
       id: '/app/admin/subusers'
       path: '/admin/subusers'
@@ -275,6 +294,7 @@ interface AppRouteChildren {
   AppAdminConfigRoute: typeof AppAdminConfigRoute
   AppAdminOrdersRoute: typeof AppAdminOrdersRoute
   AppAdminSubusersRoute: typeof AppAdminSubusersRoute
+  AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
 }
 
@@ -286,6 +306,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminConfigRoute: AppAdminConfigRoute,
   AppAdminOrdersRoute: AppAdminOrdersRoute,
   AppAdminSubusersRoute: AppAdminSubusersRoute,
+  AppAdminUsersRoute: AppAdminUsersRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
 }
 

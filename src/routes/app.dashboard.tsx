@@ -76,7 +76,11 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
   };
 
   return (
-    <div className={`border rounded-lg p-4 space-y-3 bg-card ${expired ? "opacity-70" : ""}`}>
+    <div
+      className={`border rounded-lg p-4 space-y-3 bg-card ${
+        expired ? "border-destructive/50 text-destructive [&_*]:!text-destructive blur-[2px] hover:blur-0 transition-all" : ""
+      }`}
+    >
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Badge variant={expired ? "destructive" : "default"}>{formatAmount(Number(o.gb_amount))}</Badge>

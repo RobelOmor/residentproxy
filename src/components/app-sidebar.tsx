@@ -30,7 +30,8 @@ export function AppSidebar() {
   const adminItems = [
     { title: "Dashboard", url: "/app/admin", icon: LayoutDashboard },
     { title: "Config", url: "/app/admin/config", icon: Cog },
-    { title: "Orders", url: "/app/admin/orders", icon: Users },
+    { title: "Orders", url: "/app/admin/orders", icon: Receipt },
+    { title: "User Management", url: "/app/admin/users", icon: Users },
   ];
 
   const items = role === "admin" ? adminItems : userItems;

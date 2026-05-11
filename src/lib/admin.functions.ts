@@ -481,6 +481,65 @@ export const adminRejectOrder = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// --- Admin: list users with their orders ---
+export const adminListUsersWithOrders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
+    const { data: profiles, error: perr } = await supabase
+      .from("profiles")
+      .select("id, email, display_name, balance_usdt, created_at")
+      .order("created_at", { ascending: false });
+    if (perr) throw new Error(perr.message);
+    const { data: orders, error: oerr } = await supabase
+      .from("proxy_orders")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (oerr) throw new Error(oerr.message);
+    const grouped = new Map<string, typeof orders>();
+    for (const o of orders ?? []) {
+      const arr = grouped.get(o.user_id) ?? [];
+      arr.push(o);
+      grouped.set(o.user_id, arr);
+    }
+    return {
+      users: (profiles ?? []).map((p) => {
+        const list = grouped.get(p.id) ?? [];
+        const approved = list.filter((o) => o.status === "approved");
+        const pending = list.filter((o) => o.status === "pending");
+        const totalGB = approved.reduce((s, o) => s + Number(o.gb_amount), 0);
+        const totalSpent = approved.reduce((s, o) => s + Number(o.cost_usdt), 0);
+        return {
+          ...p,
+          balance_usdt: Number(p.balance_usdt),
+          orders: list,
+          approved_count: approved.length,
+          pending_count: pending.length,
+          total_gb: totalGB,
+          total_spent: totalSpent,
+        };
+      }),
+    };
+  });
+
+// --- Admin: reject/expire an approved proxy order (no refund) ---
+export const adminExpireOrder = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ orderId: z.string().uuid(), note: z.string().optional() }).parse(input),
+  )
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
+    const { error } = await supabase
+      .from("proxy_orders")
+      .update({ status: "rejected", admin_note: data.note ?? "Expired by admin" })
+      .eq("id", data.orderId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // --- Admin: list all topup requests ---
 export const adminListTopups = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

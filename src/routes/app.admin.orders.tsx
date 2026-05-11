@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Check, X, ExternalLink, Copy } from "lucide-react";
@@ -74,7 +73,7 @@ function AdminOrders() {
     }
   };
 
-  const [orderNoInputs, setOrderNoInputs] = useState<Record<string, string>>({});
+  // (no per-order username override anymore — approve uses suggested proxy_username)
 
   const copy = (t: string) => {
     navigator.clipboard.writeText(t);
@@ -82,10 +81,9 @@ function AdminOrders() {
   };
 
   const handleApprove = async (id: string, suggestedUser: string | null) => {
-    const typed = (orderNoInputs[id] ?? "").trim();
-    const username = typed || (suggestedUser ?? "").trim();
+    const username = (suggestedUser ?? "").trim();
     if (!username) {
-      toast.error("No username available to verify");
+      toast.error("No suggested username on this order");
       return;
     }
     setBusyId(id);
@@ -203,15 +201,7 @@ function AdminOrders() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-end gap-2">
-                  <div className="flex-1 min-w-[200px]">
-                    <Label className="text-xs">711proxy Username (override, optional)</Label>
-                    <Input
-                      placeholder={o.proxy_username ?? "RP..."}
-                      value={orderNoInputs[o.id] ?? ""}
-                      onChange={(e) => setOrderNoInputs((m) => ({ ...m, [o.id]: e.target.value }))}
-                    />
-                  </div>
+                <div className="flex flex-wrap items-center gap-2">
                   <Button disabled={busyId === o.id} onClick={() => handleApprove(o.id, o.proxy_username)}>
                     <Check className="h-4 w-4 mr-1" /> {busyId === o.id ? "Verifying..." : "Approve"}
                   </Button>
