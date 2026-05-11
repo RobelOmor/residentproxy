@@ -175,19 +175,44 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
         </div>
       </div>
 
+      {/* Protocol selector */}
+      <div className="pt-2 border-t space-y-2">
+        <div className="text-xs text-muted-foreground">Protocol</div>
+        <div className="flex flex-wrap gap-2">
+          {(["http", "https", "socks5"] as const).map((p) => (
+            <Button
+              key={p}
+              size="sm"
+              variant={proto === p ? "default" : "outline"}
+              onClick={() => setProto(p)}
+            >
+              {p.toUpperCase()}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-2 sm:grid-cols-3 text-sm font-mono pt-1">
         <div className="flex items-center gap-2"><span className="text-muted-foreground">Host:</span><span>{region.ip}</span></div>
         <div className="flex items-center gap-2"><span className="text-muted-foreground">Port:</span><span>{port}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Proto:</span><span>{o.proto}</span></div>
+        <div className="flex items-center gap-2"><span className="text-muted-foreground">Proto:</span><span>{proto}</span></div>
         <div className="flex items-center gap-2 sm:col-span-2"><span className="text-muted-foreground">User:</span><span className="break-all">{dynamicUser}</span></div>
         <div className="flex items-center gap-2"><span className="text-muted-foreground">Pass:</span><span>{o.proxy_passwd}</span></div>
       </div>
 
-      <div className="flex items-center gap-2 pt-1">
-        <code className="flex-1 bg-muted rounded px-2 py-1 text-xs break-all">{connString}</code>
-        <Button size="icon" variant="outline" onClick={() => copy(connString)}>
-          <Copy className="h-4 w-4" />
-        </Button>
+      <div className="space-y-2 pt-1">
+        <div className="flex items-center gap-2">
+          <code className="flex-1 bg-muted rounded px-2 py-1 text-xs break-all">{connString}</code>
+          <Button size="icon" variant="outline" onClick={() => copy(connString)} title="Copy IP:Port:User:Pass">
+            <Copy className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 bg-muted rounded px-2 py-1 text-xs break-all">{protoUrl}</code>
+          <Button size="icon" variant="outline" onClick={() => copy(protoUrl)} title="Copy URL">
+            <Copy className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <Dialog open={countryOpen} onOpenChange={setCountryOpen}>
