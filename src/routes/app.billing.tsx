@@ -244,11 +244,25 @@ function Billing() {
             <div>
               <Label>USDT Address ({pricing?.usdt_network ?? "TRC20"})</Label>
               {pricing?.usdt_address ? (
-                <div className="flex gap-2 mt-1">
-                  <code className="flex-1 bg-muted rounded px-3 py-2 text-xs break-all">{pricing.usdt_address}</code>
-                  <Button variant="outline" size="icon" onClick={() => copy(pricing.usdt_address!)}>
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                <div className="mt-2 space-y-3">
+                  <div className="flex justify-center">
+                    <div className="bg-white p-2 rounded-lg border">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&data=${encodeURIComponent(pricing.usdt_address)}`}
+                        alt="USDT Address QR Code"
+                        width={180}
+                        height={180}
+                        className="block"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-center text-xs text-muted-foreground">Scan QR or copy address manually</p>
+                  <div className="flex gap-2">
+                    <code className="flex-1 bg-muted rounded px-3 py-2 text-xs break-all select-all">{pricing.usdt_address}</code>
+                    <Button variant="outline" size="icon" onClick={() => copy(pricing.usdt_address!)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <p className="text-sm text-destructive mt-1">Admin has not set a USDT address yet.</p>

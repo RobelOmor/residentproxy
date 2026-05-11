@@ -29,11 +29,11 @@ function AppLayout() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-12 flex items-center border-b px-2 gap-2">
+          <header className="h-12 flex items-center border-b px-2 gap-2 sticky top-0 bg-background z-10">
             <SidebarTrigger />
-            <h2 className="font-semibold">ResidentProxy.com Console</h2>
+            <h2 className="font-semibold text-sm sm:text-base truncate">ResidentProxy.com</h2>
           </header>
-          <main className="flex-1 p-6 bg-muted/30">
+          <main className="flex-1 p-3 sm:p-6 bg-muted/30 overflow-x-hidden">
             <Outlet />
           </main>
         </div>

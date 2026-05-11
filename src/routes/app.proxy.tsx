@@ -83,12 +83,12 @@ function BuyProxy() {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">
           Buy Residential Proxy
         </h1>
         <Card className="px-4 py-2">
           <div className="text-xs text-muted-foreground">Available Balance</div>
-          <div className="text-xl font-bold">${balance.toFixed(2)} USDT</div>
+          <div className="text-lg sm:text-xl font-bold">${balance.toFixed(2)} USDT</div>
         </Card>
       </div>
 
@@ -147,13 +147,13 @@ function BuyProxy() {
           </div>
 
           {/* Pricing card */}
-          <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <div>
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">
                   Current Rate
                 </div>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-xl sm:text-2xl font-bold text-blue-600">
                   ${rate.toFixed(2)}
                   <span className="text-sm text-muted-foreground font-normal">/GB</span>
                 </div>
@@ -162,7 +162,7 @@ function BuyProxy() {
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">
                   Total Amount
                 </div>
-                <div className="text-4xl font-bold text-slate-900 dark:text-foreground">
+                <div className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-foreground">
                   ${cost.toFixed(2)}
                 </div>
                 <div className="text-xs text-muted-foreground">USDT</div>
