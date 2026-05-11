@@ -74,7 +74,7 @@ function AdminOrders() {
     }
   };
 
-  const [orderNoInputs, setOrderNoInputs] = useState<Record<string, string>>({});
+  // (no per-order username override anymore — approve uses suggested proxy_username)
 
   const copy = (t: string) => {
     navigator.clipboard.writeText(t);
