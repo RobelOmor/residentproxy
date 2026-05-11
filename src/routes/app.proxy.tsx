@@ -212,10 +212,6 @@ function BuyProxy() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
