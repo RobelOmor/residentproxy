@@ -109,7 +109,7 @@ function Billing() {
       const code = (r as { coupons?: { code?: string } | null }).coupons?.code ?? "—";
       return {
         id: r.id, amount: Number(r.amount_usdt), ref: `[COUPON] ${code}`,
-        status: "approved", note: "Coupon redeemed", date: r.created_at, kind: "coupon",
+        status: "approved", note: "Coupon redeemed", date: r.redeemed_at, kind: "coupon",
       };
     });
     return [...a, ...b].sort((x, y) => +new Date(y.date) - +new Date(x.date));
