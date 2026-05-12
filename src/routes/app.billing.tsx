@@ -215,7 +215,7 @@ function qrFor(s: string) {
 
 async function uploadScreenshot(userId: string, file: File): Promise<string> {
   const ext = file.name.split(".").pop() || "png";
-  const path = `topup/${userId}/${Date.now()}.${ext}`;
+  const path = `${userId}/topup/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from("support-attachments").upload(path, file, { upsert: false });
   if (error) throw error;
   const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
