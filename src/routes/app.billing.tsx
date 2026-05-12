@@ -82,8 +82,8 @@ function Billing() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("coupon_redemptions")
-        .select("id, amount_usdt, created_at, coupons(code)")
-        .order("created_at", { ascending: false });
+        .select("id, amount_usdt, redeemed_at, coupons(code)")
+        .order("redeemed_at", { ascending: false });
       if (error) throw error;
       return data;
     },
