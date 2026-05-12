@@ -15,7 +15,6 @@ import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as ContactRouteImport } from './routes/contact'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -59,11 +58,6 @@ const LocationsRoute = LocationsRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -141,7 +135,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/locations': typeof LocationsRoute
   '/pricing': typeof PricingRoute
@@ -164,7 +157,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/locations': typeof LocationsRoute
   '/pricing': typeof PricingRoute
@@ -188,7 +180,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/locations': typeof LocationsRoute
   '/pricing': typeof PricingRoute
@@ -213,7 +204,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/app'
-    | '/auth'
     | '/contact'
     | '/locations'
     | '/pricing'
@@ -236,7 +226,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/app'
-    | '/auth'
     | '/contact'
     | '/locations'
     | '/pricing'
@@ -259,7 +248,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/app'
-    | '/auth'
     | '/contact'
     | '/locations'
     | '/pricing'
@@ -283,7 +271,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AppRoute: typeof AppRouteWithChildren
-  AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   LocationsRoute: typeof LocationsRoute
   PricingRoute: typeof PricingRoute
@@ -335,13 +322,6 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -477,7 +457,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AppRoute: AppRouteWithChildren,
-  AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   LocationsRoute: LocationsRoute,
   PricingRoute: PricingRoute,
@@ -489,3 +468,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

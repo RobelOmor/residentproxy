@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import { useAuthModal } from "@/components/auth-modal";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -11,10 +12,14 @@ export const Route = createFileRoute("/app")({
 function AppLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { open } = useAuthModal();
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth" });
-  }, [loading, user, navigate]);
+    if (!loading && !user) {
+      navigate({ to: "/" });
+      open("login");
+    }
+  }, [loading, user, navigate, open]);
 
   if (loading || !user) {
     return (

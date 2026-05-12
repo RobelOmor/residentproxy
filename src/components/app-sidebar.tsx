@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Settings as SettingsIcon, ShoppingCart, Receipt, LogOut, Cog, Users, Search } from "lucide-react";
+import { LayoutDashboard, Settings as SettingsIcon, ShoppingCart, Receipt, LogOut, Cog, Users, Search, Wallet } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -30,6 +30,7 @@ export function AppSidebar() {
   const adminItems = [
     { title: "Dashboard", url: "/app/admin", icon: LayoutDashboard },
     { title: "Config", url: "/app/admin/config", icon: Cog },
+    { title: "Payment", url: "/app/admin/payment", icon: Wallet },
     { title: "Orders", url: "/app/admin/orders", icon: Receipt },
     { title: "User Management", url: "/app/admin/users", icon: Users },
     { title: "SEO", url: "/app/admin/seo", icon: Search },
@@ -70,7 +71,7 @@ export function AppSidebar() {
             <SidebarMenuButton
               onClick={async () => {
                 await signOut();
-                navigate({ to: "/auth" });
+                navigate({ to: "/" });
               }}
             >
               <LogOut className="h-4 w-4" />
