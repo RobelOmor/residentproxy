@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Copy, ExternalLink, Ticket } from "lucide-react";
+import { Copy, ExternalLink, Ticket, ChevronRight, Send } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/billing")({ component: Billing });
