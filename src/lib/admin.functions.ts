@@ -388,37 +388,52 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
     if (!order) throw new Error("Order not found");
     if (order.status !== "pending") throw new Error(`Order already ${order.status}`);
 
-    // Get 711 credentials
+    // Get dashboard token (required to verify sub-user existence on 711proxy)
     const { data: cfg } = await supabase
       .from("app_config")
-      .select("proxy_username, proxy_passwd")
+      .select("proxy_dashboard_token")
       .eq("id", 1)
       .maybeSingle();
-    if (!cfg?.proxy_username || !cfg?.proxy_passwd) throw new Error("711proxy credentials not configured");
+    const dashToken = cfg?.proxy_dashboard_token?.trim();
+    if (!dashToken) {
+      throw new Error("711proxy Dashboard Token is not set in admin config — cannot verify sub-user.");
+    }
 
-    // NOTE: 711proxy's sub-user list endpoint requires a dashboard JWT (not the EAPI token),
-    // so server-side verification is not possible. We trust the admin's click — the admin
-    // manually created the sub-user on 711proxy with the suggested user/pass/MB-limit before
-    // approving here. Live usage is then synced via the cron + manual refresh button.
-    // Connectivity sanity-check: make sure our 711 credentials still work.
+    const suname = (data.suname ?? order.proxy_username ?? data.orderNo).trim();
+
+    // Verify sub-user exists on 711proxy with sufficient capacity
+    let sub: JsonRecord | null;
     try {
-      await fetch711Token(cfg.proxy_username, cfg.proxy_passwd);
+      sub = await fetch711SubUserByName(dashToken, suname);
     } catch (e) {
-      throw new Error(`711proxy login failed: ${e instanceof Error ? e.message : String(e)}`);
+      throw new Error(`711proxy verification failed: ${e instanceof Error ? e.message : String(e)}. Token may be expired — refresh it in Admin → Config.`);
+    }
+    if (!sub) {
+      throw new Error(`Sub-user "${suname}" not found on 711proxy. Create it first on the 711proxy dashboard with the suggested User/Pass/MB-limit, then approve.`);
     }
 
     const requiredBytes = BigInt(Math.round(Number(order.gb_amount) * 1024 * 1024 * 1024));
-    const suname = data.suname ?? order.proxy_username ?? data.orderNo;
-    const passwd = data.passwd ?? order.proxy_passwd ?? undefined;
+    const allocatedBytes = parseTrafficTextToBytes(sub.traff_flow_top);
+    const usedBytes = parseTrafficTextToBytes(sub.traff_used) ?? 0n;
+
+    if (allocatedBytes != null && allocatedBytes < requiredBytes) {
+      const allocMb = Number(allocatedBytes / 1024n / 1024n);
+      const reqMb = Number(requiredBytes / 1024n / 1024n);
+      throw new Error(`Sub-user "${suname}" has only ${allocMb} MB allocated but order needs ${reqMb} MB. Increase the limit on 711proxy and retry.`);
+    }
+
+    const remainingBytes = allocatedBytes == null ? null : allocatedBytes > usedBytes ? allocatedBytes - usedBytes : 0n;
+    const passwd = data.passwd ?? order.proxy_passwd ?? (typeof sub.passwd === "string" ? sub.passwd : undefined);
+    const expire = sub.expire != null ? String(sub.expire) : null;
 
     const { error } = await supabase.rpc("admin_approve_order_manual" as never, {
       _order_id: data.orderId,
       _order_no: data.orderNo,
-      _suname: suname ?? null,
+      _suname: suname,
       _passwd: passwd ?? null,
-      _un_flow: requiredBytes.toString(),
-      _un_flow_used: "0",
-      _expire: null,
+      _un_flow: (remainingBytes ?? requiredBytes).toString(),
+      _un_flow_used: usedBytes.toString(),
+      _expire: expire,
     } as never);
     if (error) throw new Error(error.message);
     return { ok: true };
