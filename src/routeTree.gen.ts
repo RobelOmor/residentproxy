@@ -26,6 +26,7 @@ import { Route as AppAdminIndexRouteImport } from './routes/app.admin.index'
 import { Route as AppAdminUsersRouteImport } from './routes/app.admin.users'
 import { Route as AppAdminSubusersRouteImport } from './routes/app.admin.subusers'
 import { Route as AppAdminSeoRouteImport } from './routes/app.admin.seo'
+import { Route as AppAdminPaymentRouteImport } from './routes/app.admin.payment'
 import { Route as AppAdminOrdersRouteImport } from './routes/app.admin.orders'
 import { Route as AppAdminConfigRouteImport } from './routes/app.admin.config'
 import { Route as ApiPublicHooksSyncUsageRouteImport } from './routes/api/public/hooks/sync-usage'
@@ -115,6 +116,11 @@ const AppAdminSeoRoute = AppAdminSeoRouteImport.update({
   path: '/admin/seo',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminPaymentRoute = AppAdminPaymentRouteImport.update({
+  id: '/admin/payment',
+  path: '/admin/payment',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminOrdersRoute = AppAdminOrdersRouteImport.update({
   id: '/admin/orders',
   path: '/admin/orders',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
+  '/app/admin/payment': typeof AppAdminPaymentRoute
   '/app/admin/seo': typeof AppAdminSeoRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
   '/app/admin/users': typeof AppAdminUsersRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
+  '/app/admin/payment': typeof AppAdminPaymentRoute
   '/app/admin/seo': typeof AppAdminSeoRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
   '/app/admin/users': typeof AppAdminUsersRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
+  '/app/admin/payment': typeof AppAdminPaymentRoute
   '/app/admin/seo': typeof AppAdminSeoRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
   '/app/admin/users': typeof AppAdminUsersRoute
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/admin/config'
     | '/app/admin/orders'
+    | '/app/admin/payment'
     | '/app/admin/seo'
     | '/app/admin/subusers'
     | '/app/admin/users'
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/admin/config'
     | '/app/admin/orders'
+    | '/app/admin/payment'
     | '/app/admin/seo'
     | '/app/admin/subusers'
     | '/app/admin/users'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/admin/config'
     | '/app/admin/orders'
+    | '/app/admin/payment'
     | '/app/admin/seo'
     | '/app/admin/subusers'
     | '/app/admin/users'
@@ -401,6 +413,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminSeoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin/payment': {
+      id: '/app/admin/payment'
+      path: '/admin/payment'
+      fullPath: '/app/admin/payment'
+      preLoaderRoute: typeof AppAdminPaymentRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/admin/orders': {
       id: '/app/admin/orders'
       path: '/admin/orders'
@@ -432,6 +451,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppAdminConfigRoute: typeof AppAdminConfigRoute
   AppAdminOrdersRoute: typeof AppAdminOrdersRoute
+  AppAdminPaymentRoute: typeof AppAdminPaymentRoute
   AppAdminSeoRoute: typeof AppAdminSeoRoute
   AppAdminSubusersRoute: typeof AppAdminSubusersRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
@@ -445,6 +465,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppAdminConfigRoute: AppAdminConfigRoute,
   AppAdminOrdersRoute: AppAdminOrdersRoute,
+  AppAdminPaymentRoute: AppAdminPaymentRoute,
   AppAdminSeoRoute: AppAdminSeoRoute,
   AppAdminSubusersRoute: AppAdminSubusersRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
