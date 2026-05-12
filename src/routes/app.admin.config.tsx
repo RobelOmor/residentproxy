@@ -176,26 +176,10 @@ function AdminConfig() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Pricing & Payment</CardTitle>
-          <CardDescription>Set selling price and USDT receive address</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Label htmlFor="price">Price per GB (USDT)</Label>
-            <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="usdt">USDT Receive Address</Label>
-            <Input id="usdt" value={usdt} onChange={(e) => setUsdt(e.target.value)} placeholder="TRC20 address" />
-          </div>
-          <div>
-            <Label htmlFor="net">Network</Label>
-            <Input id="net" value={network} onChange={(e) => setNetwork(e.target.value)} placeholder="TRC20 / BEP20 / ERC20" />
-          </div>
-        </CardContent>
-      </Card>
+      <p className="text-sm text-muted-foreground">
+        Pricing, USDT addresses, Binance Pay, Telegram agents and coupons are managed in the{" "}
+        <a href="/app/admin/payment" className="underline font-semibold text-primary">Payment</a> page.
+      </p>
 
       <Button onClick={save} disabled={busy} size="lg">
         {busy ? "Saving..." : "Save Configuration"}

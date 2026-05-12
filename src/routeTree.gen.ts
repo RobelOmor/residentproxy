@@ -15,7 +15,6 @@ import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as ContactRouteImport } from './routes/contact'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,6 +26,7 @@ import { Route as AppAdminIndexRouteImport } from './routes/app.admin.index'
 import { Route as AppAdminUsersRouteImport } from './routes/app.admin.users'
 import { Route as AppAdminSubusersRouteImport } from './routes/app.admin.subusers'
 import { Route as AppAdminSeoRouteImport } from './routes/app.admin.seo'
+import { Route as AppAdminPaymentRouteImport } from './routes/app.admin.payment'
 import { Route as AppAdminOrdersRouteImport } from './routes/app.admin.orders'
 import { Route as AppAdminConfigRouteImport } from './routes/app.admin.config'
 import { Route as ApiPublicHooksSyncUsageRouteImport } from './routes/api/public/hooks/sync-usage'
@@ -59,11 +59,6 @@ const LocationsRoute = LocationsRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -121,6 +116,11 @@ const AppAdminSeoRoute = AppAdminSeoRouteImport.update({
   path: '/admin/seo',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminPaymentRoute = AppAdminPaymentRouteImport.update({
+  id: '/admin/payment',
+  path: '/admin/payment',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminOrdersRoute = AppAdminOrdersRouteImport.update({
   id: '/admin/orders',
   path: '/admin/orders',
@@ -141,7 +141,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/locations': typeof LocationsRoute
   '/pricing': typeof PricingRoute
@@ -154,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
+  '/app/admin/payment': typeof AppAdminPaymentRoute
   '/app/admin/seo': typeof AppAdminSeoRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
   '/app/admin/users': typeof AppAdminUsersRoute
@@ -164,7 +164,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/locations': typeof LocationsRoute
   '/pricing': typeof PricingRoute
@@ -177,6 +176,7 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
+  '/app/admin/payment': typeof AppAdminPaymentRoute
   '/app/admin/seo': typeof AppAdminSeoRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
   '/app/admin/users': typeof AppAdminUsersRoute
@@ -188,7 +188,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/locations': typeof LocationsRoute
   '/pricing': typeof PricingRoute
@@ -201,6 +200,7 @@ export interface FileRoutesById {
   '/app/settings': typeof AppSettingsRoute
   '/app/admin/config': typeof AppAdminConfigRoute
   '/app/admin/orders': typeof AppAdminOrdersRoute
+  '/app/admin/payment': typeof AppAdminPaymentRoute
   '/app/admin/seo': typeof AppAdminSeoRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
   '/app/admin/users': typeof AppAdminUsersRoute
@@ -213,7 +213,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/app'
-    | '/auth'
     | '/contact'
     | '/locations'
     | '/pricing'
@@ -226,6 +225,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/admin/config'
     | '/app/admin/orders'
+    | '/app/admin/payment'
     | '/app/admin/seo'
     | '/app/admin/subusers'
     | '/app/admin/users'
@@ -236,7 +236,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/app'
-    | '/auth'
     | '/contact'
     | '/locations'
     | '/pricing'
@@ -249,6 +248,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/admin/config'
     | '/app/admin/orders'
+    | '/app/admin/payment'
     | '/app/admin/seo'
     | '/app/admin/subusers'
     | '/app/admin/users'
@@ -259,7 +259,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/app'
-    | '/auth'
     | '/contact'
     | '/locations'
     | '/pricing'
@@ -272,6 +271,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/admin/config'
     | '/app/admin/orders'
+    | '/app/admin/payment'
     | '/app/admin/seo'
     | '/app/admin/subusers'
     | '/app/admin/users'
@@ -283,7 +283,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AppRoute: typeof AppRouteWithChildren
-  AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   LocationsRoute: typeof LocationsRoute
   PricingRoute: typeof PricingRoute
@@ -335,13 +334,6 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -421,6 +413,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminSeoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin/payment': {
+      id: '/app/admin/payment'
+      path: '/admin/payment'
+      fullPath: '/app/admin/payment'
+      preLoaderRoute: typeof AppAdminPaymentRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/admin/orders': {
       id: '/app/admin/orders'
       path: '/admin/orders'
@@ -452,6 +451,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppAdminConfigRoute: typeof AppAdminConfigRoute
   AppAdminOrdersRoute: typeof AppAdminOrdersRoute
+  AppAdminPaymentRoute: typeof AppAdminPaymentRoute
   AppAdminSeoRoute: typeof AppAdminSeoRoute
   AppAdminSubusersRoute: typeof AppAdminSubusersRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
@@ -465,6 +465,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppAdminConfigRoute: AppAdminConfigRoute,
   AppAdminOrdersRoute: AppAdminOrdersRoute,
+  AppAdminPaymentRoute: AppAdminPaymentRoute,
   AppAdminSeoRoute: AppAdminSeoRoute,
   AppAdminSubusersRoute: AppAdminSubusersRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
@@ -477,7 +478,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AppRoute: AppRouteWithChildren,
-  AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   LocationsRoute: LocationsRoute,
   PricingRoute: PricingRoute,

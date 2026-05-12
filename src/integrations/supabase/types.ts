@@ -71,6 +71,125 @@ export type Database = {
         }
         Relationships: []
       }
+      coupon_redemptions: {
+        Row: {
+          amount_usdt: number
+          coupon_id: string
+          id: string
+          redeemed_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_usdt: number
+          coupon_id: string
+          id?: string
+          redeemed_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_usdt?: number
+          coupon_id?: string
+          id?: string
+          redeemed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          amount_usdt: number
+          code: string
+          created_at: string
+          enabled: boolean
+          expires_at: string | null
+          id: string
+          max_uses: number
+          used_count: number
+        }
+        Insert: {
+          amount_usdt: number
+          code: string
+          created_at?: string
+          enabled?: boolean
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          used_count?: number
+        }
+        Update: {
+          amount_usdt?: number
+          code?: string
+          created_at?: string
+          enabled?: boolean
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          used_count?: number
+        }
+        Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          address: string | null
+          binance_email: string | null
+          binance_id: string | null
+          country_code: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          kind: string
+          label: string
+          manager_name: string | null
+          network: string | null
+          qr_url: string | null
+          sort: number
+          telegram_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          binance_email?: string | null
+          binance_id?: string | null
+          country_code?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind: string
+          label: string
+          manager_name?: string | null
+          network?: string | null
+          qr_url?: string | null
+          sort?: number
+          telegram_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          binance_email?: string | null
+          binance_id?: string | null
+          country_code?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind?: string
+          label?: string
+          manager_name?: string | null
+          network?: string | null
+          qr_url?: string | null
+          sort?: number
+          telegram_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           balance_usdt: number
@@ -317,6 +436,32 @@ export type Database = {
         }[]
       }
       get_dashboard_token: { Args: never; Returns: string }
+      get_public_payment_methods: {
+        Args: never
+        Returns: {
+          address: string | null
+          binance_email: string | null
+          binance_id: string | null
+          country_code: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          kind: string
+          label: string
+          manager_name: string | null
+          network: string | null
+          qr_url: string | null
+          sort: number
+          telegram_url: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "payment_methods"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_public_pricing: {
         Args: never
         Returns: {
@@ -349,6 +494,7 @@ export type Database = {
         Args: { _cost: number; _gb: number }
         Returns: string
       }
+      redeem_coupon: { Args: { _code: string }; Returns: number }
       sync_my_orders_usage_from_pool: { Args: never; Returns: number }
       update_my_order_usage: {
         Args: {
