@@ -268,7 +268,7 @@ function BinanceCard({ method, userId, copy, onSubmitted }: { method: Method; us
   const submit = async () => {
     if (!userId) return;
     const amt = Number(amount);
-    if (!amt || amt <= 0) return toast.error("Enter a valid amount");
+    if (!amt || amt < 10) return toast.error("Minimum top-up is $10.00");
     if (!tx.trim()) return toast.error("Enter the Binance Pay transaction ID");
     setBusy(true);
     const { error } = await supabase.from("topup_requests").insert({
@@ -281,20 +281,16 @@ function BinanceCard({ method, userId, copy, onSubmitted }: { method: Method; us
   };
   const ref = method.binance_id || method.binance_email || "";
   return (
-    <div className="border rounded-lg p-4 grid md:grid-cols-2 gap-4">
-      <div className="flex flex-col items-center gap-2">
-        <div className="bg-white p-2 rounded-lg border">
-          <img src={method.qr_url || qrFor(ref)} alt="Binance Pay QR" width={180} height={180} />
-        </div>
-        <p className="text-xs text-muted-foreground">{method.label}</p>
-      </div>
-      <div className="space-y-3">
+    <div className="space-y-4">
+      <GatewayRow logoUrl={method.qr_url} logoFallback="Binance" address={ref} label={method.label} copy={copy} />
+      <div className="grid md:grid-cols-2 gap-3 max-w-xl">
         {method.binance_id && (<div><Label>Binance Pay ID</Label><div className="flex gap-2"><code className="flex-1 bg-muted px-3 py-2 rounded text-xs">{method.binance_id}</code><Button size="icon" variant="outline" onClick={() => copy(method.binance_id!)}><Copy className="h-4 w-4" /></Button></div></div>)}
         {method.binance_email && (<div><Label>Binance Email</Label><div className="flex gap-2"><code className="flex-1 bg-muted px-3 py-2 rounded text-xs">{method.binance_email}</code><Button size="icon" variant="outline" onClick={() => copy(method.binance_email!)}><Copy className="h-4 w-4" /></Button></div></div>)}
-        <div><Label>Amount (USDT)</Label><Input type="number" step={0.01} value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+        <div><Label>Amount (USDT)</Label><Input type="number" min={10} step={0.01} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="10.00 minimum" /></div>
         <div><Label>Binance Pay TX ID</Label><Input value={tx} onChange={(e) => setTx(e.target.value)} /></div>
-        <Button onClick={submit} disabled={busy} className="w-full">{busy ? "Submitting…" : "Submit top-up"}</Button>
       </div>
+      <p className="text-xs text-muted-foreground">Minimum top-up: <strong>$10.00 USDT</strong>. No maximum.</p>
+      <Button onClick={submit} disabled={busy} className="w-full md:w-auto">{busy ? "Submitting…" : "Submit top-up"}</Button>
     </div>
   );
 }
@@ -321,16 +317,20 @@ function AgentList({ agents, country }: { agents: Method[]; country: string | nu
       </div>
       <div className="grid md:grid-cols-2 gap-3">
         {filtered.map((a) => (
-          <a key={a.id} href={a.telegram_url ?? "#"} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between border rounded-lg p-3 hover:bg-muted transition">
-            <div>
-              <div className="font-semibold">{a.manager_name ?? a.label}</div>
-              <div className="text-xs text-muted-foreground">{a.country_code ?? "Global"} · Telegram</div>
+          <a key={a.id} href={a.telegram_url ?? "#"} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 border rounded-lg p-4 hover:bg-muted transition">
+            <div className="w-12 h-12 rounded-full bg-[#229ED9] text-white flex items-center justify-center flex-shrink-0">
+              <Send className="h-6 w-6" />
             </div>
-            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold truncate">{a.manager_name ?? a.label}</div>
+              <div className="text-xs text-muted-foreground">{a.country_code ?? "Global"} · Open in Telegram</div>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </a>
         ))}
         {filtered.length === 0 && <p className="text-sm text-muted-foreground">No agents for this country yet.</p>}
       </div>
+      <p className="text-xs text-muted-foreground">Minimum top-up via agent: <strong>$10.00</strong>. Confirm with your agent before sending.</p>
     </div>
   );
 }
