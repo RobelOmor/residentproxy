@@ -112,9 +112,13 @@ export const adminSaveConfig = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const supabase = context.supabase as unknown as SbClient;
     await assertAdmin(supabase, context.userId);
+    const patch: Record<string, unknown> = { ...data, updated_at: new Date().toISOString() };
+    if (data.proxy_dashboard_token && data.proxy_dashboard_token.trim().length > 0) {
+      patch.proxy_dashboard_token_set_at = new Date().toISOString();
+    }
     const { error } = await supabase
       .from("app_config")
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update(patch as never)
       .eq("id", 1);
     if (error) throw new Error(error.message);
     return { ok: true };
