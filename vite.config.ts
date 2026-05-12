@@ -16,4 +16,17 @@ export default defineConfig({
       prerender: { outputPath: "/index.html" },
     },
   },
+  vite: {
+    environments: {
+      ssr: {
+        build: {
+          rollupOptions: {
+            output: {
+              entryFileNames: "server.js",
+            },
+          },
+        },
+      },
+    },
+  },
 });
