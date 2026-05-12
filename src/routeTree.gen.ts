@@ -24,6 +24,7 @@ import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppAdminIndexRouteImport } from './routes/app.admin.index'
 import { Route as AppAdminUsersRouteImport } from './routes/app.admin.users'
+import { Route as AppAdminSupportRouteImport } from './routes/app.admin.support'
 import { Route as AppAdminSubusersRouteImport } from './routes/app.admin.subusers'
 import { Route as AppAdminSeoRouteImport } from './routes/app.admin.seo'
 import { Route as AppAdminPaymentRouteImport } from './routes/app.admin.payment'
@@ -106,6 +107,11 @@ const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminSupportRoute = AppAdminSupportRouteImport.update({
+  id: '/admin/support',
+  path: '/admin/support',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminSubusersRoute = AppAdminSubusersRouteImport.update({
   id: '/admin/subusers',
   path: '/admin/subusers',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/payment': typeof AppAdminPaymentRoute
   '/app/admin/seo': typeof AppAdminSeoRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
+  '/app/admin/support': typeof AppAdminSupportRoute
   '/app/admin/users': typeof AppAdminUsersRoute
   '/app/admin/': typeof AppAdminIndexRoute
   '/api/public/hooks/sync-usage': typeof ApiPublicHooksSyncUsageRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/app/admin/payment': typeof AppAdminPaymentRoute
   '/app/admin/seo': typeof AppAdminSeoRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
+  '/app/admin/support': typeof AppAdminSupportRoute
   '/app/admin/users': typeof AppAdminUsersRoute
   '/app/admin': typeof AppAdminIndexRoute
   '/api/public/hooks/sync-usage': typeof ApiPublicHooksSyncUsageRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   '/app/admin/payment': typeof AppAdminPaymentRoute
   '/app/admin/seo': typeof AppAdminSeoRoute
   '/app/admin/subusers': typeof AppAdminSubusersRoute
+  '/app/admin/support': typeof AppAdminSupportRoute
   '/app/admin/users': typeof AppAdminUsersRoute
   '/app/admin/': typeof AppAdminIndexRoute
   '/api/public/hooks/sync-usage': typeof ApiPublicHooksSyncUsageRoute
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/app/admin/payment'
     | '/app/admin/seo'
     | '/app/admin/subusers'
+    | '/app/admin/support'
     | '/app/admin/users'
     | '/app/admin/'
     | '/api/public/hooks/sync-usage'
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/app/admin/payment'
     | '/app/admin/seo'
     | '/app/admin/subusers'
+    | '/app/admin/support'
     | '/app/admin/users'
     | '/app/admin'
     | '/api/public/hooks/sync-usage'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/app/admin/payment'
     | '/app/admin/seo'
     | '/app/admin/subusers'
+    | '/app/admin/support'
     | '/app/admin/users'
     | '/app/admin/'
     | '/api/public/hooks/sync-usage'
@@ -399,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUsersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin/support': {
+      id: '/app/admin/support'
+      path: '/admin/support'
+      fullPath: '/app/admin/support'
+      preLoaderRoute: typeof AppAdminSupportRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/admin/subusers': {
       id: '/app/admin/subusers'
       path: '/admin/subusers'
@@ -454,6 +473,7 @@ interface AppRouteChildren {
   AppAdminPaymentRoute: typeof AppAdminPaymentRoute
   AppAdminSeoRoute: typeof AppAdminSeoRoute
   AppAdminSubusersRoute: typeof AppAdminSubusersRoute
+  AppAdminSupportRoute: typeof AppAdminSupportRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
 }
@@ -468,6 +488,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminPaymentRoute: AppAdminPaymentRoute,
   AppAdminSeoRoute: AppAdminSeoRoute,
   AppAdminSubusersRoute: AppAdminSubusersRoute,
+  AppAdminSupportRoute: AppAdminSupportRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
 }
@@ -489,13 +510,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

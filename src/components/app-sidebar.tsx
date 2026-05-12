@@ -1,5 +1,6 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Settings as SettingsIcon, ShoppingCart, Receipt, LogOut, Cog, Users, Search, Wallet } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { LayoutDashboard, Settings as SettingsIcon, ShoppingCart, Receipt, LogOut, Cog, Users, Search, Wallet, MessageCircle } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,13 +13,24 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
+import { useServerFn } from "@tanstack/react-start";
+import { adminGetStats } from "@/lib/support.functions";
 
 export function AppSidebar() {
   const { role, user, signOut } = useAuth();
   const path = useRouterState({ select: (r) => r.location.pathname });
   const navigate = useNavigate();
   const isActive = (p: string) => path === p;
+  const statsFn = useServerFn(adminGetStats);
+  const { data: stats } = useQuery({
+    queryKey: ["admin-support-unread"],
+    enabled: role === "admin",
+    queryFn: () => statsFn(),
+    refetchInterval: 8000,
+  });
+  const supportUnread = Number(stats?.support_unread ?? 0);
 
   const userItems = [
     { title: "Dashboard", url: "/app/dashboard", icon: LayoutDashboard },
@@ -33,6 +45,7 @@ export function AppSidebar() {
     { title: "Payment", url: "/app/admin/payment", icon: Wallet },
     { title: "Orders", url: "/app/admin/orders", icon: Receipt },
     { title: "User Management", url: "/app/admin/users", icon: Users },
+    { title: "Customer Support", url: "/app/admin/support", icon: MessageCircle, badge: supportUnread },
     { title: "SEO", url: "/app/admin/seo", icon: Search },
   ];
 
@@ -56,7 +69,10 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link to={item.url} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span className="flex-1">{item.title}</span>
+                      {"badge" in item && (item as { badge?: number }).badge ? (
+                        <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">{(item as { badge: number }).badge}</Badge>
+                      ) : null}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

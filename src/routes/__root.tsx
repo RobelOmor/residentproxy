@@ -11,6 +11,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { AuthModalProvider } from "@/components/auth-modal";
 import { Toaster } from "@/components/ui/sonner";
 import { BrandHeadSync } from "@/components/site-brand";
+import { SupportWidget } from "@/components/support-widget";
 
 import appCss from "../styles.css?url";
 
@@ -121,6 +122,7 @@ function RootComponent() {
         <AuthModalProvider>
           <BrandHeadSync />
           <Outlet />
+          <SupportWidget />
           <Toaster />
         </AuthModalProvider>
       </AuthProvider>

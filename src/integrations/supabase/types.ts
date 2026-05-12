@@ -19,6 +19,7 @@ export type Database = {
           id: number
           price_per_gb_usdt: number
           proxy_dashboard_token: string | null
+          proxy_dashboard_token_set_at: string | null
           proxy_passwd: string | null
           proxy_username: string | null
           site_description: string | null
@@ -37,6 +38,7 @@ export type Database = {
           id?: number
           price_per_gb_usdt?: number
           proxy_dashboard_token?: string | null
+          proxy_dashboard_token_set_at?: string | null
           proxy_passwd?: string | null
           proxy_username?: string | null
           site_description?: string | null
@@ -55,6 +57,7 @@ export type Database = {
           id?: number
           price_per_gb_usdt?: number
           proxy_dashboard_token?: string | null
+          proxy_dashboard_token_set_at?: string | null
           proxy_passwd?: string | null
           proxy_username?: string | null
           site_description?: string | null
@@ -339,6 +342,80 @@ export type Database = {
           },
         ]
       }
+      support_messages: {
+        Row: {
+          attachment_type: string | null
+          attachment_url: string | null
+          body: string | null
+          created_at: string
+          id: string
+          sender: string
+          thread_id: string
+        }
+        Insert: {
+          attachment_type?: string | null
+          attachment_url?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          sender: string
+          thread_id: string
+        }
+        Update: {
+          attachment_type?: string | null
+          attachment_url?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          sender?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "support_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_threads: {
+        Row: {
+          created_at: string
+          customer_name: string
+          id: string
+          last_message_at: string
+          status: string
+          telegram_id: string | null
+          unread_admin: number
+          unread_user: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          id?: string
+          last_message_at?: string
+          status?: string
+          telegram_id?: string | null
+          unread_admin?: number
+          unread_user?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          id?: string
+          last_message_at?: string
+          status?: string
+          telegram_id?: string | null
+          unread_admin?: number
+          unread_user?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       topup_requests: {
         Row: {
           admin_note: string | null
@@ -424,6 +501,7 @@ export type Database = {
         Args: { _note?: string; _topup_id: string }
         Returns: undefined
       }
+      admin_stats: { Args: never; Returns: Json }
       admin_update_pool_usage: {
         Args: { _mb_used: number; _pool_id: string }
         Returns: undefined
@@ -495,6 +573,16 @@ export type Database = {
         Returns: string
       }
       redeem_coupon: { Args: { _code: string }; Returns: number }
+      support_mark_read: { Args: { _thread_id: string }; Returns: undefined }
+      support_send_message: {
+        Args: {
+          _attachment_type?: string
+          _attachment_url?: string
+          _body: string
+          _thread_id: string
+        }
+        Returns: string
+      }
       sync_my_orders_usage_from_pool: { Args: never; Returns: number }
       update_my_order_usage: {
         Args: {

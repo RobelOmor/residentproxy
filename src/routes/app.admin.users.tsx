@@ -195,8 +195,20 @@ function AdminUsers() {
                                   </span>
                                   <span className="text-muted-foreground text-xs">
                                     Used: <b className="text-foreground">{fmtBytes(used)}</b> /{" "}
-                                    {fmtBytes(total)}
+                                    {fmtBytes(total)} · Remaining: <b className="text-foreground">{fmtBytes(remaining)}</b>
                                   </span>
+                                  {o.status === "approved" && o.approved_at && (() => {
+                                    const ageDays = (Date.now() - new Date(o.approved_at).getTime()) / 86400000;
+                                    if (ageDays >= 28) {
+                                      const remain = Math.max(0, 30 - ageDays);
+                                      return (
+                                        <Badge variant="destructive" className="animate-pulse">
+                                          ⚠️ Expires in {remain.toFixed(0)} day{remain === 1 ? "" : "s"} — disable on 711proxy
+                                        </Badge>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
                                   {o.proxy_username && (
                                     <span className="font-mono text-xs">
                                       {o.proxy_username}@{o.host}:{o.port}
