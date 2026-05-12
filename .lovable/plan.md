@@ -1,91 +1,93 @@
-## Goal
-Convert auth to modal-only, build a full multi-method payment system (USDT networks, Binance Pay, Telegram agents by country, coupon codes), expose them on the user Billing page, and lock everything down with strict RLS + server-side validation.
+## Scope
+Large multi-area update covering admin payment, user billing UI, admin config, users page, dashboard stats, orders approval flow, and live chat support.
 
-## 1. Auth changes
-- Delete `src/routes/auth.tsx` (modal already handles login/signup).
-- Update `src/routes/app.tsx` redirect: when no user, open auth modal + send to `/` instead of `/auth`.
-- Redesign Google button in `src/components/auth-modal.tsx`: white background, Google "G" multi-color SVG (same as old auth.tsx), proper spacing — matches Google Identity guidelines.
+## 1. Admin → Payment page (`app.admin.payment.tsx`)
+- Rename "QR image URL (optional)" → "Gateway logo URL" (used as the gateway icon shown to users); the QR image is **auto-generated** from the payment address (using `qrcode` library, client-side render).
+- Binance Pay form: relabel fields to "Binance Pay ID" and "Binance Pay Email" with helper text so users understand each.
+- Coupons table: split into **Active** and **Expired/Used** lists. Active rows get Activate/Disable/Delete actions. A coupon whose `used_count >= max_uses` (or past `expires_at`) shows in Expired with no actions.
+- Telegram Agent rows: keep `telegram_url`; nothing else needed (logo will render automatically on user side).
 
-## 2. Database (new migrations)
+## 2. User → Billing page (`app.billing.tsx`)
+- New 3-column layout per gateway card: **[Gateway logo] → [QR code] → below QR show pay address as copyable text**.
+- USDT, Binance Pay: same pattern. Auto-generate QR from address using `qrcode` (already pure-JS, edge-safe).
+- Telegram Agent card: show **Telegram logo** + agent name/country + "Open in Telegram" button (link to telegram_url).
+- Top-up minimum **$10**, no maximum. Validate on coupon and any future amount inputs (note: current flow doesn't take an amount — payments are manual; only coupon redeems credit. Enforce $10 min only on coupon `amount_usdt` server-side display + future amount inputs.) Add a visible note "Minimum top-up: $10.00".
 
-```
-payment_methods
-  id uuid pk, kind text ('usdt'|'binance'|'card'|'agent'),
-  label text, network text null, address text null,
-  qr_url text null, binance_id text null, binance_email text null,
-  telegram_url text null, manager_name text null, country_code text null,
-  enabled bool default true, sort int default 0,
-  created_at, updated_at
+## 3. Admin → Config page (`app.admin.config.tsx`)
+- Hide "711Proxy Login" card by default behind a "Show 711Proxy login (advanced)" toggle.
+- Keep "Live Usage Sync (Dashboard Token)" visible.
+- Track token entry timestamp (`proxy_dashboard_token_set_at` column). Show:
+  - Red alert banner when token is **>13 days old** (1 day before 14-day expiry).
+  - Stronger red banner when token is **>14 days old** ("expired").
+- Migration: add `proxy_dashboard_token_set_at timestamptz` to `app_config`; update `adminSaveConfig` to set it when token changes.
 
-coupons
-  id uuid pk, code text unique citext,
-  amount_usdt numeric, max_uses int default 1, used_count int default 0,
-  expires_at timestamptz null, enabled bool default true, created_at
+## 4. Admin → Users page (`app.admin.users.tsx`)
+- For each user, list their approved proxy orders with **live used / remaining MB** by calling the dashboard-token sync per sub-user (reuse existing `sync-usage` logic) and read from `sub_user_pool.mb_used` / `mb_capacity`.
+- 30-day expiry warning: any approved order where `now() - approved_at >= 28 days` shows a **red "Expires in N days — disable on 711proxy"** badge.
 
-coupon_redemptions
-  id uuid pk, coupon_id uuid fk, user_id uuid, amount_usdt numeric,
-  redeemed_at timestamptz default now(),
-  unique (coupon_id, user_id)   -- one-time per user; combined with max_uses for global cap
-```
+## 5. Admin → Dashboard (`app.admin.index.tsx`)
+Stat cards (queried via new `adminStats` server fn):
+- Total GB sold (sum `gb_amount` of approved orders)
+- Total GB remaining (sum `(mb_capacity - mb_used)/1024` across assigned `sub_user_pool` rows)
+- Total USDT sold (sum `cost_usdt` of approved orders)
+- Total USDT topped up (sum `amount_usdt` of approved topups + redeemed coupons)
+- Pending orders count
+- Approved orders count
+- Rejected orders count
 
-RLS:
-- `payment_methods`: public SELECT only `enabled=true` rows; admin ALL.
-- `coupons`: admin ALL only (users never read codes directly).
-- `coupon_redemptions`: user SELECT own; INSERT only via SECURITY DEFINER function.
+## 6. Admin → Orders approval (`app.admin.orders.tsx`)
+- Before showing "Assign sub-user / Approve" action: call dashboard token to verify the chosen sub-user actually exists on 711proxy with matching capacity. Block approval with clear error if sub-user not found or capacity insufficient. Reuse `adminTestDashboardToken` + a new `adminVerifySubUserOnRemote(suname)` server fn that hits 711proxy dashboard API.
 
-Server-side coupon redemption function `redeem_coupon(_code text)`:
-- SECURITY DEFINER, search_path=public
-- Validates: enabled, not expired, used_count < max_uses, not previously redeemed by this user
-- Atomically: insert redemption, increment used_count, increment `profiles.balance_usdt`, return new balance
-- Throws on failure (so client can't infer code validity beyond "invalid")
+## 7. Live Chat Support
+New feature — biggest piece.
 
-## 3. Admin "Payment" page (`src/routes/app.admin.payment.tsx`)
-Move Pricing & Payment block out of `app.admin.config.tsx`. New page sections:
-- **Pricing**: price per GB.
-- **USDT addresses**: list rows (network=TRC20/BEP20/ERC20/SOL...), add/edit/delete, optional QR upload URL.
-- **Binance Pay**: Binance ID + email + QR.
-- **Card**: placeholder ("Coming soon", disabled).
-- **Telegram Agents**: list (manager name, country, telegram URL, optional flag). Multiple per country allowed.
-- **Coupons**: create/list/disable (code, amount, max_uses, expiry).
+**DB:**
+- `support_threads` (id, user_id, customer_name, telegram_id, status open/closed, last_message_at, unread_admin int, unread_user int, created_at)
+- `support_messages` (id, thread_id, sender role admin|user, body text, attachment_url text null, created_at)
+- `support-attachments` storage bucket (public read for shared media, RLS enforced).
+- RLS: user sees own thread + messages; admin sees all.
+- Realtime enabled on both tables.
 
-Sidebar: add "Payment" item between Config and Orders. Remove Pricing & Payment card from `app.admin.config.tsx`.
+**User-facing widget** (mounted in `__root.tsx` for public site + `app.tsx` for app):
+- Floating red "Chat With Support" button bottom-right (matches screenshot).
+- Click → modal "Hstock-style" panel: Full Name + Telegram ID (optional) → opens/creates thread.
+- Chat panel: messages, file/image upload, sound on incoming admin reply.
 
-All writes go through new server fns in `src/lib/admin.functions.ts` guarded by `requireSupabaseAuth` + admin role check.
+**Admin side** (new `/app/admin/support` route + sidebar link "Customer Support" with unread badge):
+- Thread list with unread counts and loud sound alert on new user message (HTML5 audio).
+- Open thread → full conversation, can reply, send images/files.
 
-## 4. User Billing page (`src/routes/app.billing.tsx`)
-Tabs/sections:
-1. **USDT** — pick network → show address + QR + manual tx hash submit (existing flow, preserved).
-2. **Binance Pay** — show Binance ID/email + QR + tx submit.
-3. **Telegram Agent** — auto-detect visitor country (Cloudflare `cf-ipcountry` header via server fn `getVisitorCountry`); show matching agents first, then full list. Each row links to `t.me/...`.
-4. **Coupon Code** — input field → calls `redeem_coupon` RPC → toast new balance, refresh profile.
+## 8. Files
+**New:**
+- `src/components/support-widget.tsx`
+- `src/components/qr-code.tsx` (wraps `qrcode` lib)
+- `src/lib/support.functions.ts`
+- `src/routes/app.admin.support.tsx`
+- migration (token_set_at, support tables, storage bucket, RLS, realtime)
 
-Country detection: server fn reads `request.headers.get('cf-ipcountry')` (works on Cloudflare Workers runtime).
+**Edited:**
+- `src/routes/app.admin.payment.tsx` (label change, coupon split, binance labels)
+- `src/routes/app.billing.tsx` (logo→arrow→QR→address layout, telegram card, $10 min note)
+- `src/routes/app.admin.config.tsx` (hide 711 login, token age alert)
+- `src/routes/app.admin.users.tsx` (live usage, expiry warning)
+- `src/routes/app.admin.index.tsx` (stat cards)
+- `src/routes/app.admin.orders.tsx` (verify before approve)
+- `src/components/app-sidebar.tsx` (Customer Support entry + unread badge)
+- `src/routes/__root.tsx` (mount support widget on public)
+- `src/routes/app.tsx` (mount widget for app)
+- `src/lib/admin.functions.ts` (adminStats, verify sub-user)
+- `src/lib/payment.functions.ts` (no changes needed)
 
-## 5. Sidebar
-`src/components/app-sidebar.tsx`: add admin "Payment" link. User-side already has Billing.
+## 9. Dependencies
+- `bun add qrcode @types/qrcode`
 
-## 6. Security hardening (the "hacker-proof" requirement)
-- All admin server fns: `requireSupabaseAuth` + explicit `has_role(uid,'admin')` check inside handler (defense in depth).
-- All inputs validated with `zod` (length, regex, enum) before DB writes.
-- `redeem_coupon`: SECURITY DEFINER with locked `search_path=public`, FOR UPDATE row lock to prevent race-condition double-spend.
-- `coupons` table never exposed to client; only RPC returns success/amount.
-- `payment_methods` public read filtered to enabled rows via RLS USING clause.
-- Generic error messages on coupon failures (no enumeration).
-- Rate limit coupon attempts: track failed attempts in-memory per user (best-effort) and reject after 5/min.
-- Keep service_role key server-only; client uses anon key (already correct).
-- CSRF: TanStack server fns are POST with same-origin; safe.
-- XSS: continue using React (no `dangerouslySetInnerHTML`); validate URLs (`telegram_url` must match `^https://t\.me/`).
-- SQL injection: parameterized queries only (Supabase client) — no string concat.
-- Run `supabase--linter` after migration, fix all warnings.
+## 10. Security
+- All new server fns use `requireSupabaseAuth`; admin-only ones add `assertAdmin`.
+- Storage bucket policies: user can upload to own folder, read messages from threads they belong to, admin full access.
+- File type/size validation on upload (image/* + pdf, max 5MB).
+- Realtime channels filtered by user_id / admin role.
 
-## 7. Files touched
-- delete: `src/routes/auth.tsx`
-- new: `src/routes/app.admin.payment.tsx`, migration file
-- edit: `src/components/auth-modal.tsx`, `src/routes/app.tsx`, `src/routes/app.billing.tsx`, `src/routes/app.admin.config.tsx`, `src/components/app-sidebar.tsx`, `src/lib/admin.functions.ts`, `src/lib/proxy.functions.ts` (add coupon RPC wrapper + getVisitorCountry)
+## Open question
+This is a very large change. I'll build it in this order (resilient to partial failure): **Migration → admin payment + config + users + dashboard + orders → user billing redesign → live chat (last, since it's the biggest standalone piece).**
 
-## Open questions before I build
-1. For USDT, should existing `app_config.usdt_address`/`usdt_network` be migrated into `payment_methods` automatically (one row), or kept as legacy fallback? (I'll auto-migrate + keep legacy column readable.)
-2. Coupon: one-time **per user** OR one-time **globally** (single use ever)? Plan supports both via `max_uses=1` (global) + unique constraint (per-user). Confirm default for admin UI.
-3. Country detection on local dev (no Cloudflare header) — fall back to "show all agents" with a country dropdown. OK?
-
-Reply "go" to build, or tell me adjustments.
+Reply "go" to build, or tell me to descope a section.
