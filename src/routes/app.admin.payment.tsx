@@ -274,15 +274,31 @@ function MethodForm({
               </Select>
             </div>
             <div><Label>Wallet address</Label><Input value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
-            <div><Label>QR image URL (optional)</Label><Input value={form.qr_url ?? ""} onChange={(e) => setForm({ ...form, qr_url: e.target.value })} placeholder="https://..." /></div>
+            <div>
+              <Label>Gateway logo URL (optional)</Label>
+              <Input value={form.qr_url ?? ""} onChange={(e) => setForm({ ...form, qr_url: e.target.value })} placeholder="https://...usdt-logo.png" />
+              <p className="text-xs text-muted-foreground mt-1">Shown as the gateway icon on the user billing page. The QR code is auto-generated from the wallet address.</p>
+            </div>
           </>
         )}
 
         {kind === "binance" && (
           <>
-            <div><Label>Binance Pay ID</Label><Input value={form.binance_id ?? ""} onChange={(e) => setForm({ ...form, binance_id: e.target.value })} /></div>
-            <div><Label>Binance Email</Label><Input value={form.binance_email ?? ""} onChange={(e) => setForm({ ...form, binance_email: e.target.value })} /></div>
-            <div><Label>QR image URL (optional)</Label><Input value={form.qr_url ?? ""} onChange={(e) => setForm({ ...form, qr_url: e.target.value })} placeholder="https://..." /></div>
+            <div>
+              <Label>Binance Pay ID</Label>
+              <Input value={form.binance_id ?? ""} onChange={(e) => setForm({ ...form, binance_id: e.target.value })} placeholder="123456789" />
+              <p className="text-xs text-muted-foreground mt-1">Numeric Binance Pay user ID (from Binance app → Pay → Profile).</p>
+            </div>
+            <div>
+              <Label>Binance Pay Email</Label>
+              <Input value={form.binance_email ?? ""} onChange={(e) => setForm({ ...form, binance_email: e.target.value })} placeholder="you@binance.com" />
+              <p className="text-xs text-muted-foreground mt-1">The email registered with your Binance account.</p>
+            </div>
+            <div>
+              <Label>Gateway logo URL (optional)</Label>
+              <Input value={form.qr_url ?? ""} onChange={(e) => setForm({ ...form, qr_url: e.target.value })} placeholder="https://...binance-logo.png" />
+              <p className="text-xs text-muted-foreground mt-1">Shown as the Binance Pay icon. QR is auto-generated from the Pay ID.</p>
+            </div>
           </>
         )}
 
@@ -291,6 +307,11 @@ function MethodForm({
             <div><Label>Manager name</Label><Input value={form.manager_name ?? ""} onChange={(e) => setForm({ ...form, manager_name: e.target.value })} placeholder="Robel Omor" /></div>
             <div><Label>Country code (ISO-2)</Label><Input value={form.country_code ?? ""} maxLength={2} onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} placeholder="BD" /></div>
             <div><Label>Telegram URL</Label><Input value={form.telegram_url ?? ""} onChange={(e) => setForm({ ...form, telegram_url: e.target.value })} placeholder="https://t.me/robelomor" /></div>
+            <div>
+              <Label>Telegram logo URL (optional)</Label>
+              <Input value={form.qr_url ?? ""} onChange={(e) => setForm({ ...form, qr_url: e.target.value })} placeholder="https://...telegram-logo.png" />
+              <p className="text-xs text-muted-foreground mt-1">Optional custom logo. Defaults to Telegram brand icon.</p>
+            </div>
           </>
         )}
 
@@ -335,13 +356,19 @@ function CouponsSection({
     finally { setBusy(false); }
   };
 
+  const now = Date.now();
+  const isExpired = (c: Coupon) =>
+    c.used_count >= c.max_uses || (c.expires_at && new Date(c.expires_at).getTime() < now);
+  const active = coupons.filter((c) => !isExpired(c));
+  const expired = coupons.filter((c) => isExpired(c));
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Coupon Codes</CardTitle>
-        <CardDescription>One redemption per user. Total uses capped by Max Uses.</CardDescription>
+        <CardDescription>One redemption per user. Total uses capped by Max Uses. Used / expired codes are listed separately and cannot be reactivated.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
           <div className="md:col-span-2"><Label>Code</Label><Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="WELCOME10" /></div>
           <div><Label>Amount USDT</Label><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
@@ -350,20 +377,41 @@ function CouponsSection({
             <Button onClick={add} disabled={busy || !code}>Add</Button>
           </div>
         </div>
-        <div className="space-y-2">
-          {coupons.length === 0 && <p className="text-sm text-muted-foreground">No coupons yet.</p>}
-          {coupons.map((c) => (
-            <div key={c.id} className="flex items-center justify-between gap-2 border rounded p-3">
-              <div className="min-w-0 flex-1">
-                <div className="font-mono font-semibold">{c.code}</div>
-                <div className="text-xs text-muted-foreground">${Number(c.amount_usdt).toFixed(2)} · {c.used_count}/{c.max_uses} used</div>
+
+        <div>
+          <h3 className="font-semibold text-sm mb-2">Active ({active.length})</h3>
+          <div className="space-y-2">
+            {active.length === 0 && <p className="text-sm text-muted-foreground">No active coupons.</p>}
+            {active.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-2 border rounded p-3">
+                <div className="min-w-0 flex-1">
+                  <div className="font-mono font-semibold">{c.code}</div>
+                  <div className="text-xs text-muted-foreground">${Number(c.amount_usdt).toFixed(2)} · {c.used_count}/{c.max_uses} used{c.expires_at ? ` · expires ${new Date(c.expires_at).toLocaleDateString()}` : ""}</div>
+                </div>
+                <Badge variant={c.enabled ? "default" : "secondary"}>{c.enabled ? "active" : "disabled"}</Badge>
+                <Switch checked={c.enabled} onCheckedChange={async (v) => { await toggleFn({ data: { id: c.id, enabled: v } }); refresh(); }} />
+                <Button variant="ghost" size="icon" onClick={async () => { if (confirm("Delete?")) { await delFn({ data: { id: c.id } }); refresh(); } }}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
               </div>
-              <Switch checked={c.enabled} onCheckedChange={async (v) => { await toggleFn({ data: { id: c.id, enabled: v } }); refresh(); }} />
-              <Button variant="ghost" size="icon" onClick={async () => { if (confirm("Delete?")) { await delFn({ data: { id: c.id } }); refresh(); } }}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-sm mb-2 text-muted-foreground">Expired / Used ({expired.length})</h3>
+          <div className="space-y-2">
+            {expired.length === 0 && <p className="text-sm text-muted-foreground">No expired coupons.</p>}
+            {expired.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-2 border rounded p-3 opacity-60">
+                <div className="min-w-0 flex-1">
+                  <div className="font-mono font-semibold line-through">{c.code}</div>
+                  <div className="text-xs text-muted-foreground">${Number(c.amount_usdt).toFixed(2)} · {c.used_count}/{c.max_uses} used{c.expires_at ? ` · expired ${new Date(c.expires_at).toLocaleDateString()}` : ""}</div>
+                </div>
+                <Badge variant="destructive">expired</Badge>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
