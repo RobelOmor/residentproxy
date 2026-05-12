@@ -205,7 +205,7 @@ function UsdtTopup({
   const submit = async () => {
     if (!userId || !selected) return;
     const amt = Number(amount);
-    if (!amt || amt <= 0) return toast.error("Enter a valid amount");
+    if (!amt || amt < 10) return toast.error("Minimum top-up is $10.00");
     if (!tx.trim()) return toast.error("Enter the transaction hash");
     setBusy(true);
     const { error } = await supabase.from("topup_requests").insert({
@@ -229,26 +229,34 @@ function UsdtTopup({
           </Button>
         ))}
       </div>
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="flex flex-col items-center gap-2">
-          <div className="bg-white p-2 rounded-lg border">
-            <img src={selected.qr_url || qrFor(selected.address ?? "")} alt={`${selected.label} QR`} width={180} height={180} className="block" />
-          </div>
-          <p className="text-xs text-muted-foreground">{selected.label}</p>
+      <GatewayRow logoUrl={selected.qr_url} logoFallback={selected.network ?? "USDT"} address={selected.address ?? ""} label={selected.label} copy={copy} />
+      <div className="grid md:grid-cols-2 gap-3 max-w-xl">
+        <div><Label>Amount (USDT)</Label><Input type="number" min={10} step={0.01} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="10.00 minimum" /></div>
+        <div><Label>Transaction Hash</Label><Input value={tx} onChange={(e) => setTx(e.target.value)} placeholder="0x... / TRX hash" /></div>
+      </div>
+      <p className="text-xs text-muted-foreground">Minimum top-up: <strong>$10.00 USDT</strong>. No maximum.</p>
+      <Button onClick={submit} disabled={busy} className="w-full md:w-auto">{busy ? "Submitting…" : "Submit top-up"}</Button>
+    </div>
+  );
+}
+
+function GatewayRow({ logoUrl, logoFallback, address, label, copy }: { logoUrl: string | null; logoFallback: string; address: string; label: string; copy: (s: string) => void }) {
+  return (
+    <div className="flex items-center gap-3 md:gap-6 border rounded-lg p-4 flex-wrap md:flex-nowrap">
+      <div className="flex-shrink-0 w-20 h-20 rounded-lg border bg-white flex items-center justify-center overflow-hidden">
+        {logoUrl ? <img src={logoUrl} alt={`${label} logo`} className="max-w-full max-h-full object-contain" /> : <span className="text-xs font-semibold text-muted-foreground">{logoFallback}</span>}
+      </div>
+      <ChevronRight className="h-6 w-6 text-muted-foreground hidden md:block" />
+      <div className="flex flex-col items-center gap-2">
+        <div className="bg-white p-2 rounded-lg border">
+          <img src={qrFor(address)} alt={`${label} QR`} width={150} height={150} className="block" />
         </div>
-        <div className="space-y-3">
-          <div>
-            <Label>Address</Label>
-            <div className="flex gap-2">
-              <code className="flex-1 bg-muted rounded px-3 py-2 text-xs break-all">{selected.address}</code>
-              <Button variant="outline" size="icon" onClick={() => copy(selected.address ?? "")}><Copy className="h-4 w-4" /></Button>
-            </div>
-          </div>
-          <div><Label>Amount (USDT)</Label><Input type="number" min={0.01} step={0.01} value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
-          <div><Label>Transaction Hash</Label><Input value={tx} onChange={(e) => setTx(e.target.value)} placeholder="0x... / TRX hash" /></div>
-          <Button onClick={submit} disabled={busy} className="w-full">{busy ? "Submitting…" : "Submit top-up"}</Button>
+        <div className="flex items-center gap-1 max-w-[260px]">
+          <code className="bg-muted rounded px-2 py-1 text-[11px] break-all">{address}</code>
+          <Button variant="outline" size="icon" className="h-7 w-7 flex-shrink-0" onClick={() => copy(address)}><Copy className="h-3 w-3" /></Button>
         </div>
       </div>
+      <div className="ml-auto"><Badge variant="secondary">{label}</Badge></div>
     </div>
   );
 }
