@@ -72,9 +72,9 @@ export const supportSendMessage = createServerFn({ method: "POST" })
     const sb = context.supabase as unknown as SbClient;
     const { data: id, error } = await sb.rpc("support_send_message", {
       _thread_id: data.thread_id,
-      _body: data.body ?? null,
-      _attachment_url: data.attachment_url ?? null,
-      _attachment_type: data.attachment_type ?? null,
+      _body: data.body ?? "",
+      _attachment_url: data.attachment_url ?? undefined,
+      _attachment_type: data.attachment_type ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { ok: true, id };
