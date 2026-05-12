@@ -128,7 +128,7 @@ export const adminCreateCoupon = createServerFn({ method: "POST" })
     z
       .object({
         code: z.string().trim().min(3).max(64).regex(/^[A-Za-z0-9_-]+$/),
-        amount_usdt: z.number().positive().max(100000),
+        amount_usdt: z.number().min(10, "Minimum coupon amount is $10").max(100000),
         max_uses: z.number().int().positive().max(100000).default(1),
         expires_at: z.string().datetime().nullish().or(z.literal("")),
       })
