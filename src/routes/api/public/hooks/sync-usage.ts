@@ -45,7 +45,16 @@ function parseTrafficTextToBytes(value: unknown): bigint | null {
 export const Route = createFileRoute("/api/public/hooks/sync-usage")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        // Require a shared secret so this privileged write endpoint is not callable by anyone.
+        const expected = process.env.SYNC_HOOK_SECRET;
+        if (!expected) return new Response("Server not configured", { status: 500 });
+        const provided =
+          request.headers.get("x-sync-secret") ??
+          new URL(request.url).searchParams.get("secret") ??
+          "";
+        if (provided !== expected) return new Response("Forbidden", { status: 403 });
+
         const url = process.env.SUPABASE_URL;
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!url || !key) return new Response("Server not configured", { status: 500 });
