@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Send, Paperclip, Image as ImgIcon } from "lucide-react";
+import { SupportAttachment } from "@/components/support-attachment";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/admin/support")({ component: AdminSupport });
