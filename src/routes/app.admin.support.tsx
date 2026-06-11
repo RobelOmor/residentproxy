@@ -99,8 +99,7 @@ function AdminSupport() {
     const path = `${u.user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const { error } = await supabase.storage.from("support-attachments").upload(path, file);
     if (error) return toast.error(error.message);
-    const { data: pub } = supabase.storage.from("support-attachments").getPublicUrl(path);
-    await sendFn({ data: { thread_id: activeId, body: null, attachment_url: pub.publicUrl, attachment_type: file.type } });
+    await sendFn({ data: { thread_id: activeId, body: null, attachment_url: path, attachment_type: file.type } });
     if (fileRef.current) fileRef.current.value = "";
   };
 
