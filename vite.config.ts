@@ -18,6 +18,11 @@ export default defineConfig({
   },
   vite: {
     environments: {
+      client: {
+        build: {
+          manifest: true,
+        },
+      },
       ssr: {
         build: {
           rollupOptions: {

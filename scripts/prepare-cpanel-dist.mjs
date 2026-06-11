@@ -29,6 +29,63 @@ async function copyClientFilesToDistRoot() {
   }
 }
 
+async function readManifest() {
+  const candidates = [
+    path.join(clientDir, ".vite", "manifest.json"),
+    path.join(clientDir, "manifest.json"),
+  ];
+  for (const candidate of candidates) {
+    if (await exists(candidate)) {
+      const { readFile } = await import("node:fs/promises");
+      return JSON.parse(await readFile(candidate, "utf8"));
+    }
+  }
+  return null;
+}
+
+function pickEntry(manifest) {
+  for (const [, chunk] of Object.entries(manifest)) {
+    if (chunk && chunk.isEntry) return chunk;
+  }
+  return null;
+}
+
+async function generateIndexFromManifest() {
+  const manifest = await readManifest();
+  if (!manifest) return false;
+  const entry = pickEntry(manifest);
+  if (!entry || !entry.file) return false;
+
+  const cssLinks = (entry.css ?? [])
+    .map((href) => `    <link rel="stylesheet" href="/${href}">`)
+    .join("\n");
+  const preloadLinks = (entry.imports ?? [])
+    .map((key) => manifest[key]?.file)
+    .filter(Boolean)
+    .map((file) => `    <link rel="modulepreload" href="/${file}">`)
+    .join("\n");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App</title>
+${cssLinks}
+${preloadLinks}
+    <script type="module" crossorigin src="/${entry.file}"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+`;
+
+  const { writeFile } = await import("node:fs/promises");
+  await writeFile(indexPath, html, "utf8");
+  return true;
+}
+
 async function ensureRootIndexHtml() {
   if (await exists(indexPath)) return;
 
@@ -43,6 +100,8 @@ async function ensureRootIndexHtml() {
       return;
     }
   }
+
+  if (await generateIndexFromManifest()) return;
 
   throw new Error("Could not create dist/index.html because no client HTML file was found.");
 }
