@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Send, Paperclip, Image as ImgIcon } from "lucide-react";
+import { Send, Image as ImgIcon } from "lucide-react";
+import { SupportAttachment } from "@/components/support-attachment";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/admin/support")({ component: AdminSupport });
@@ -98,8 +99,7 @@ function AdminSupport() {
     const path = `${u.user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const { error } = await supabase.storage.from("support-attachments").upload(path, file);
     if (error) return toast.error(error.message);
-    const { data: pub } = supabase.storage.from("support-attachments").getPublicUrl(path);
-    await sendFn({ data: { thread_id: activeId, body: null, attachment_url: pub.publicUrl, attachment_type: file.type } });
+    await sendFn({ data: { thread_id: activeId, body: null, attachment_url: path, attachment_type: file.type } });
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -137,9 +137,9 @@ function AdminSupport() {
                   <div key={m.id} className={`flex ${m.sender === "admin" ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${m.sender === "admin" ? "bg-primary text-primary-foreground" : "bg-card border"}`}>
                       {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
-                      {m.attachment_url && (m.attachment_type?.startsWith("image/")
-                        ? <img src={m.attachment_url} alt="" className="rounded mt-1 max-w-full" />
-                        : <a href={m.attachment_url} target="_blank" rel="noreferrer" className="underline text-xs flex items-center gap-1 mt-1"><Paperclip className="h-3 w-3" />File</a>)}
+                      {m.attachment_url && (
+                        <SupportAttachment attachment={m.attachment_url} type={m.attachment_type} />
+                      )}
                       <div className="text-[10px] opacity-60 mt-1">{new Date(m.created_at).toLocaleTimeString()}</div>
                     </div>
                   </div>
