@@ -11,27 +11,6 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
-    spa: {
-      enabled: true,
-      prerender: { outputPath: "/index.html" },
-    },
-  },
-  vite: {
-    environments: {
-      client: {
-        build: {
-          manifest: true,
-        },
-      },
-      ssr: {
-        build: {
-          rollupOptions: {
-            output: {
-              entryFileNames: "server.js",
-            },
-          },
-        },
-      },
-    },
   },
 });
+
