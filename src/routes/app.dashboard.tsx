@@ -73,9 +73,12 @@ function getExpiry(approvedAt: string | null): { date: Date | null; expired: boo
 
 function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
   const totalBytes = Number(o.gb_amount) * GB;
-  const remainingBytes = o.un_flow ? Number(o.un_flow) : totalBytes;
-  const usedBytes =
-    o.un_flow_used != null ? Number(o.un_flow_used) : Math.max(0, totalBytes - remainingBytes);
+  // Usage is tracked against the purchased amount. The upstream sub-user pool
+  // (un_flow) may be larger than this single order's allocation, so we derive
+  // remaining from used + total instead of trusting un_flow directly.
+  const rawUsed = o.un_flow_used != null ? Number(o.un_flow_used) : 0;
+  const usedBytes = Math.max(0, Math.min(totalBytes, rawUsed));
+  const remainingBytes = Math.max(0, totalBytes - usedBytes);
   const usedPct = totalBytes > 0 ? Math.min(100, (usedBytes / totalBytes) * 100) : 0;
   const { date: expireDate, label: expireLabel } = getExpiry(o.approved_at);
 
