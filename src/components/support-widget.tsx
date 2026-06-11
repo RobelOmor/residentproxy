@@ -123,12 +123,11 @@ export function SupportWidget() {
       const path = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const { error: upErr } = await supabase.storage.from("support-attachments").upload(path, file);
       if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("support-attachments").getPublicUrl(path);
       await send({
         data: {
           thread_id: thread.id,
           body: null,
-          attachment_url: pub.publicUrl,
+          attachment_url: path,
           attachment_type: file.type,
         },
       });
