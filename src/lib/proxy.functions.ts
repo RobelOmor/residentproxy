@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type JsonValue =
   | string
@@ -12,6 +13,15 @@ export type JsonValue =
 const BASE = "https://server.711proxy.com/eapi";
 
 type ApiResult = { status: number; ok: boolean; body: JsonValue };
+
+async function assertAdmin(context: { supabase: unknown; userId: string }) {
+  const sb = context.supabase as {
+    rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+  };
+  const { data, error } = await sb.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden: admin only");
+}
 
 async function callApi(
   path: string,
@@ -46,35 +56,44 @@ async function callApi(
   }
 }
 
-// --- Token ---
+// --- Token (admin only) ---
 export const getProxyToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ username: z.string().min(1), passwd: z.string().min(1) }).parse(input),
+    z.object({ username: z.string().min(1).max(128), passwd: z.string().min(1).max(256) }).parse(input),
   )
-  .handler(async ({ data }) => callApi("token", { method: "POST", body: data }));
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    return callApi("token", { method: "POST", body: data });
+  });
 
-// --- Enterprise Balance ---
+// --- Enterprise Balance (admin only) ---
 export const getEnterpriseBalance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ token: z.string().min(1) }).parse(input),
+    z.object({ token: z.string().min(1).max(2048) }).parse(input),
   )
-  .handler(async ({ data }) => callApi("balance", { method: "GET", token: data.token }));
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    return callApi("balance", { method: "GET", token: data.token });
+  });
 
-// --- Create Order ---
+// --- Create Order (admin only) ---
 export const createOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
-        token: z.string().min(1),
-        flow: z.number().int().positive(), // GB amount
-        expire: z.string().optional(),
-        host: z.string().optional(),
+        token: z.string().min(1).max(2048),
+        flow: z.number().int().positive().max(1024 * 1024),
+        expire: z.string().max(64).optional(),
+        host: z.string().max(256).optional(),
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
     const { token, flow, expire, host } = data;
-    // API expects flow in bytes as string; 1 GB = 1024^3 bytes
     const flowBytes = (BigInt(flow) * BigInt(1024) * BigInt(1024) * BigInt(1024)).toString();
     const payload: Record<string, string> = { flow: flowBytes };
     if (expire) payload.expire = expire;
@@ -82,12 +101,14 @@ export const createOrder = createServerFn({ method: "POST" })
     return callApi("order", { method: "POST", token, body: payload });
   });
 
-// --- Whitelist (add user/IP) ---
+// --- Whitelist (admin only) ---
 export const addWhitelist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ token: z.string().min(1), ip: z.string().min(1) }).parse(input),
+    z.object({ token: z.string().min(1).max(2048), ip: z.string().min(1).max(64) }).parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
     const { token, ip } = data;
     return callApi("whitelist", { method: "POST", token, body: { ip } });
   });
