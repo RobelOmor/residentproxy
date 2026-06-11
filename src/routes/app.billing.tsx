@@ -218,8 +218,9 @@ async function uploadScreenshot(userId: string, file: File): Promise<string> {
   const path = `${userId}/topup/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from("support-attachments").upload(path, file, { upsert: false });
   if (error) throw error;
-  const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
-  return data.publicUrl;
+  // Bucket is private; store the storage path. Admins can generate a signed
+  // URL when reviewing the top-up.
+  return path;
 }
 
 function UsdtTopup({
