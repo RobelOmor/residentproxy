@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "ResidentProxy - Test Your Online Residential Proxy" },
+      { name: "description", content: "Premium Residential Proxies for Serious Operators" },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "ResidentProxy - Test Your Online Residential Proxy" },
+      { property: "og:description", content: "Premium Residential Proxies for Serious Operators" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "ResidentProxy - Test Your Online Residential Proxy" },
+      { name: "twitter:description", content: "Premium Residential Proxies for Serious Operators" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/SBtv66VJpzNFrvQmHI0qSC5uAix2/social-images/social-1781150080517-logo.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/SBtv66VJpzNFrvQmHI0qSC5uAix2/social-images/social-1781150080517-logo.webp" },
     ],
     links: [
       {
