@@ -137,9 +137,9 @@ function AdminSupport() {
                   <div key={m.id} className={`flex ${m.sender === "admin" ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${m.sender === "admin" ? "bg-primary text-primary-foreground" : "bg-card border"}`}>
                       {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
-                      {m.attachment_url && (m.attachment_type?.startsWith("image/")
-                        ? <img src={m.attachment_url} alt="" className="rounded mt-1 max-w-full" />
-                        : <a href={m.attachment_url} target="_blank" rel="noreferrer" className="underline text-xs flex items-center gap-1 mt-1"><Paperclip className="h-3 w-3" />File</a>)}
+                      {m.attachment_url && (
+                        <SupportAttachment attachment={m.attachment_url} type={m.attachment_type} />
+                      )}
                       <div className="text-[10px] opacity-60 mt-1">{new Date(m.created_at).toLocaleTimeString()}</div>
                     </div>
                   </div>
