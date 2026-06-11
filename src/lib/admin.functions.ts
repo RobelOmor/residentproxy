@@ -453,10 +453,16 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
     const list = (orders ?? []).filter((o) => o.order_no || o.proxy_username);
     if (list.length === 0) return { ok: true, refreshed: 0 };
 
-    // Read 711 dashboard session token via SECURITY DEFINER RPC (token never leaves the server).
-    const tokRes = (await supabase.rpc("get_dashboard_token" as never)) as { data: string | null; error: { message: string } | null };
-    if (tokRes.error) throw new Error(`Failed to read dashboard token: ${tokRes.error.message}`);
-    const dashToken = (tokRes.data ?? "").trim();
+    // Read 711 dashboard token via service-role client (token never leaves the server,
+    // and the get_dashboard_token RPC is now admin-only).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: cfgRow, error: cfgErr } = await supabaseAdmin
+      .from("app_config")
+      .select("proxy_dashboard_token")
+      .eq("id", 1)
+      .maybeSingle();
+    if (cfgErr) throw new Error(`Failed to read dashboard token: ${cfgErr.message}`);
+    const dashToken = (cfgRow?.proxy_dashboard_token ?? "").trim();
     if (!dashToken) {
       throw new Error("Live usage sync isn't set up yet — admin needs to paste a 711proxy dashboard token in Configuration.");
     }
