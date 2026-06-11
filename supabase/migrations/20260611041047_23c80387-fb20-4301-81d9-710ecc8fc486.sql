@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "public read enabled methods" ON public.payment_methods;
