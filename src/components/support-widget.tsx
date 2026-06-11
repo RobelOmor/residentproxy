@@ -11,7 +11,7 @@ import {
 } from "@/lib/support.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Headset, X, Send, Paperclip, Image as ImgIcon } from "lucide-react";
+import { Headset, X, Send, Image as ImgIcon } from "lucide-react";
 import { SupportAttachment } from "@/components/support-attachment";
 import { toast } from "sonner";
 
