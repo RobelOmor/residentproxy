@@ -475,6 +475,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _gen_proxy_username: { Args: never; Returns: string }
       _rand_lc: { Args: { n: number }; Returns: string }
       admin_approve_order_manual: {
         Args: {
