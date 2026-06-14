@@ -157,7 +157,7 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
                 key={r.code}
                 size="sm"
                 variant={active ? "default" : "outline"}
-                onClick={() => setRegion(r)}
+                onClick={() => { setRegion(r); setCountryCode(null); setCountryName(null); }}
               >
                 <Globe className="h-3 w-3 mr-1" />
                 {r.label}
