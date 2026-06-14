@@ -83,13 +83,11 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
   const { date: expireDate, label: expireLabel } = getExpiry(o.approved_at);
 
   const [region, setRegion] = useState<Region>(REGIONS[0]);
-  const [countryCode, setCountryCode] = useState<string | null>(null);
-  const [countryName, setCountryName] = useState<string | null>(null);
+  const [countryCode, setCountryCode] = useState<string | null>("BR");
+  const [countryName, setCountryName] = useState<string | null>("Brazil");
   const [countryOpen, setCountryOpen] = useState(false);
   const [countryQuery, setCountryQuery] = useState("");
-  const [proto, setProto] = useState<"http" | "https" | "socks5">(
-    (o.proto as "http" | "https" | "socks5") || "http",
-  );
+  const [proto, setProto] = useState<"http" | "https" | "socks5">("socks5");
 
   const baseUser = o.proxy_username ?? "";
   const dynamicUser = countryCode
