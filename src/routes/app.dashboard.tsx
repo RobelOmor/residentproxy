@@ -164,12 +164,24 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
           })}
           <Button
             size="sm"
-            variant={countryCode ? "default" : "outline"}
+            variant="outline"
             onClick={() => setCountryOpen(true)}
           >
-            {countryCode ? `Country: ${countryName} (${countryCode})` : "More Country"}
+            More Country
           </Button>
         </div>
+        {countryCode && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => setCountryOpen(true)}
+            >
+              Country: {countryName} ({countryCode})
+            </Button>
+          </div>
+        )}
+
       </div>
 
       {/* Protocol selector */}
