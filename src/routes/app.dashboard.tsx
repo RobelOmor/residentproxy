@@ -146,7 +146,9 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
 
       {/* Region selector */}
       <div className="pt-2 border-t space-y-2">
-        <div className="text-xs text-muted-foreground">Choose Region</div>
+        <div className="text-xs text-muted-foreground">
+          {countryCode ? "Choose Region" : "Proxy host provider"}
+        </div>
         <div className="flex flex-wrap gap-2">
           {REGIONS.map((r) => {
             const active = region.code === r.code;
