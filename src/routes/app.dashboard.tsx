@@ -149,17 +149,13 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
         <div className="text-xs text-muted-foreground">Choose Region</div>
         <div className="flex flex-wrap gap-2">
           {REGIONS.map((r) => {
-            const active = region.code === r.code && !countryCode;
+            const active = region.code === r.code;
             return (
               <Button
                 key={r.code}
                 size="sm"
                 variant={active ? "default" : "outline"}
-                onClick={() => {
-                  setRegion(r);
-                  setCountryCode(null);
-                  setCountryName(null);
-                }}
+                onClick={() => setRegion(r)}
               >
                 <Globe className="h-3 w-3 mr-1" />
                 {r.label}
@@ -171,7 +167,7 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
             variant={countryCode ? "default" : "outline"}
             onClick={() => setCountryOpen(true)}
           >
-            {countryCode ? `Country: ${countryName} (${countryCode})` : "Custom Country"}
+            {countryCode ? `Country: ${countryName} (${countryCode})` : "More Country"}
           </Button>
         </div>
       </div>
