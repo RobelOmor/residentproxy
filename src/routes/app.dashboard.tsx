@@ -190,11 +190,41 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3 text-sm font-mono pt-1">
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Host:</span><span>{region.ip}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Port:</span><span>{port}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Proto:</span><span>{proto}</span></div>
-        <div className="flex items-center gap-2 sm:col-span-2"><span className="text-muted-foreground">User:</span><span className="break-all">{dynamicUser}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Pass:</span><span>{o.proxy_passwd}</span></div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Host:</span>
+          <span className="break-all">{region.ip}</span>
+          <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto" onClick={() => copy(region.ip)} title="Copy host">
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Port:</span>
+          <span>{port}</span>
+          <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto" onClick={() => copy(port)} title="Copy port">
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Proto:</span>
+          <span>{proto}</span>
+          <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto" onClick={() => copy(proto)} title="Copy protocol">
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2 sm:col-span-2">
+          <span className="text-muted-foreground">User:</span>
+          <span className="break-all">{dynamicUser}</span>
+          <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto" onClick={() => copy(dynamicUser)} title="Copy user">
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Pass:</span>
+          <span className="break-all">{o.proxy_passwd}</span>
+          <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto" onClick={() => copy(o.proxy_passwd ?? "")} title="Copy password">
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2 pt-1">
