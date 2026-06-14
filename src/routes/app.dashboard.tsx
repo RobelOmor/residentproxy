@@ -171,13 +171,16 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
           </Button>
         </div>
         {countryCode && (
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="text-sm font-medium">
+              Country: {countryName} ({countryCode})
+            </span>
             <Button
               size="sm"
-              variant="default"
+              variant="outline"
               onClick={() => setCountryOpen(true)}
             >
-              Country: {countryName} ({countryCode})
+              More Country
             </Button>
           </div>
         )}
