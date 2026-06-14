@@ -83,13 +83,11 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
   const { date: expireDate, label: expireLabel } = getExpiry(o.approved_at);
 
   const [region, setRegion] = useState<Region>(REGIONS[0]);
-  const [countryCode, setCountryCode] = useState<string | null>(null);
-  const [countryName, setCountryName] = useState<string | null>(null);
+  const [countryCode, setCountryCode] = useState<string | null>("BR");
+  const [countryName, setCountryName] = useState<string | null>("Brazil");
   const [countryOpen, setCountryOpen] = useState(false);
   const [countryQuery, setCountryQuery] = useState("");
-  const [proto, setProto] = useState<"http" | "https" | "socks5">(
-    (o.proto as "http" | "https" | "socks5") || "http",
-  );
+  const [proto, setProto] = useState<"http" | "https" | "socks5">("socks5");
 
   const baseUser = o.proxy_username ?? "";
   const dynamicUser = countryCode
@@ -151,17 +149,13 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
         <div className="text-xs text-muted-foreground">Choose Region</div>
         <div className="flex flex-wrap gap-2">
           {REGIONS.map((r) => {
-            const active = region.code === r.code && !countryCode;
+            const active = region.code === r.code;
             return (
               <Button
                 key={r.code}
                 size="sm"
                 variant={active ? "default" : "outline"}
-                onClick={() => {
-                  setRegion(r);
-                  setCountryCode(null);
-                  setCountryName(null);
-                }}
+                onClick={() => setRegion(r)}
               >
                 <Globe className="h-3 w-3 mr-1" />
                 {r.label}
@@ -173,7 +167,7 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
             variant={countryCode ? "default" : "outline"}
             onClick={() => setCountryOpen(true)}
           >
-            {countryCode ? `Country: ${countryName} (${countryCode})` : "Custom Country"}
+            {countryCode ? `Country: ${countryName} (${countryCode})` : "More Country"}
           </Button>
         </div>
       </div>
@@ -196,11 +190,41 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3 text-sm font-mono pt-1">
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Host:</span><span>{region.ip}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Port:</span><span>{port}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Proto:</span><span>{proto}</span></div>
-        <div className="flex items-center gap-2 sm:col-span-2"><span className="text-muted-foreground">User:</span><span className="break-all">{dynamicUser}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Pass:</span><span>{o.proxy_passwd}</span></div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Host:</span>
+          <span className="break-all">{region.ip}</span>
+          <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto" onClick={() => copy(region.ip)} title="Copy host">
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Port:</span>
+          <span>{port}</span>
+          <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto" onClick={() => copy(port)} title="Copy port">
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Proto:</span>
+          <span>{proto}</span>
+          <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto" onClick={() => copy(proto)} title="Copy protocol">
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2 sm:col-span-2">
+          <span className="text-muted-foreground">User:</span>
+          <span className="break-all">{dynamicUser}</span>
+          <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto" onClick={() => copy(dynamicUser)} title="Copy user">
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Pass:</span>
+          <span className="break-all">{o.proxy_passwd}</span>
+          <Button size="icon" variant="ghost" className="h-6 w-6 ml-auto" onClick={() => copy(o.proxy_passwd ?? "")} title="Copy password">
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2 pt-1">
