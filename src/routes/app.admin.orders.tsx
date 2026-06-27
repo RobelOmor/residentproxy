@@ -114,6 +114,32 @@ function AdminOrders() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this proxy order permanently? This cannot be undone.")) return;
+    setBusyId(id);
+    try {
+      await deleteOrder({ data: { orderId: id } });
+      toast.success("Deleted");
+      qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const isExpired = (o: { status: string; approved_at: string | null; un_flow: string | null }) => {
+    if (o.status !== "approved") return false;
+    if (o.approved_at) {
+      const exp = new Date(o.approved_at).getTime() + 30 * 86400 * 1000;
+      if (exp <= Date.now()) return true;
+    }
+    if (o.un_flow != null) {
+      try { if (BigInt(o.un_flow) <= 0n) return true; } catch { /* ignore */ }
+    }
+    return false;
+  };
+
   if (role !== "admin") return <p>Loading...</p>;
 
   const orders = data?.orders ?? [];
