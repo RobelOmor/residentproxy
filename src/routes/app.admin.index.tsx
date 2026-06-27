@@ -59,7 +59,7 @@ function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Configuration Status</CardTitle>
-          <CardDescription>{cfg?.config?.proxy_dashboard_token ? "✅ Dashboard token configured" : "⚠️ Live usage sync not configured — set dashboard token in Config"}</CardDescription>
+          <CardDescription>{cfg?.config?.proxy_username && cfg?.config?.proxy_passwd ? "✅ Enterprise account connected — full automation active" : "⚠️ 711proxy enterprise credentials not set in Config — auto-provisioning disabled"}</CardDescription>
         </CardHeader>
         <CardContent className="text-sm">
           <p>Price per GB: <span className="font-bold">${Number(cfg?.config?.price_per_gb_usdt ?? 0).toFixed(2)} USDT</span></p>
