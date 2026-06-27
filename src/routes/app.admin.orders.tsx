@@ -3,14 +3,14 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { adminListOrders, adminApproveOrder, adminRejectOrder, adminListTopups, adminApproveTopup, adminRejectTopup } from "@/lib/admin.functions";
+import { adminListOrders, adminApproveOrder, adminRejectOrder, adminListTopups, adminApproveTopup, adminRejectTopup, adminDeleteOrder } from "@/lib/admin.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, X, ExternalLink, Copy } from "lucide-react";
+import { Check, X, ExternalLink, Copy, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin/orders")({
   component: AdminOrders,
@@ -26,6 +26,7 @@ function AdminOrders() {
   const listTopups = useServerFn(adminListTopups);
   const approveTopup = useServerFn(adminApproveTopup);
   const rejectTopup = useServerFn(adminRejectTopup);
+  const deleteOrder = useServerFn(adminDeleteOrder);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -111,6 +112,32 @@ function AdminOrders() {
     } finally {
       setBusyId(null);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this proxy order permanently? This cannot be undone.")) return;
+    setBusyId(id);
+    try {
+      await deleteOrder({ data: { orderId: id } });
+      toast.success("Deleted");
+      qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const isExpired = (o: { status: string; approved_at: string | null; un_flow: string | null }) => {
+    if (o.status !== "approved") return false;
+    if (o.approved_at) {
+      const exp = new Date(o.approved_at).getTime() + 30 * 86400 * 1000;
+      if (exp <= Date.now()) return true;
+    }
+    if (o.un_flow != null) {
+      try { if (BigInt(o.un_flow) <= 0n) return true; } catch { /* ignore */ }
+    }
+    return false;
   };
 
   if (role !== "admin") return <p>Loading...</p>;
@@ -230,23 +257,44 @@ function AdminOrders() {
                 <TableHead>Proxy User</TableHead>
                 <TableHead>Host:Port</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {others.map((o) => (
-                <TableRow key={o.id}>
-                  <TableCell>{o.user_email}</TableCell>
-                  <TableCell>
-                    <Badge variant={o.status === "approved" ? "default" : "destructive"}>{o.status}</Badge>
-                  </TableCell>
-                  <TableCell>{Number(o.gb_amount) >= 1 ? `${Number(o.gb_amount).toFixed(2)} GB` : `${Math.round(Number(o.gb_amount) * 1024)} MB`}</TableCell>
-                  <TableCell className="font-mono text-xs">{o.proxy_username ?? "-"}</TableCell>
-                  <TableCell className="font-mono text-xs">{o.host ? `${o.host}:${o.port}` : "-"}</TableCell>
-                  <TableCell className="text-xs">{new Date(o.created_at).toLocaleString()}</TableCell>
-                </TableRow>
-              ))}
+              {others.map((o) => {
+                const expired = isExpired(o);
+                return (
+                  <TableRow
+                    key={o.id}
+                    className={expired ? "bg-destructive/10 hover:bg-destructive/15" : undefined}
+                  >
+                    <TableCell className={expired ? "text-destructive font-medium" : undefined}>{o.user_email}</TableCell>
+                    <TableCell>
+                      {expired ? (
+                        <Badge variant="destructive">expired</Badge>
+                      ) : (
+                        <Badge variant={o.status === "approved" ? "default" : "destructive"}>{o.status}</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className={expired ? "text-destructive" : undefined}>{Number(o.gb_amount) >= 1 ? `${Number(o.gb_amount).toFixed(2)} GB` : `${Math.round(Number(o.gb_amount) * 1024)} MB`}</TableCell>
+                    <TableCell className={`font-mono text-xs ${expired ? "text-destructive" : ""}`}>{o.proxy_username ?? "-"}</TableCell>
+                    <TableCell className={`font-mono text-xs ${expired ? "text-destructive" : ""}`}>{o.host ? `${o.host}:${o.port}` : "-"}</TableCell>
+                    <TableCell className={`text-xs ${expired ? "text-destructive" : ""}`}>{new Date(o.created_at).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant={expired ? "destructive" : "ghost"}
+                        disabled={busyId === o.id}
+                        onClick={() => handleDelete(o.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {!others.length && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No completed orders</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No completed orders</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
