@@ -104,6 +104,50 @@ function BuyProxy() {
         </Card>
       </div>
 
+      {success && (
+        <Card className="overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 text-white animate-in fade-in slide-in-from-top-4 duration-500">
+          <CardContent className="p-6 sm:p-8">
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 rounded-full bg-white/20 backdrop-blur p-3 animate-bounce">
+                <PartyPopper className="h-7 w-7" />
+              </div>
+              <div className="flex-1 space-y-3">
+                <div>
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest font-semibold text-white/90">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Order Successful
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-bold mt-1">
+                    Congratulations! 🎉
+                  </h2>
+                  <p className="text-white/90 mt-1 text-sm sm:text-base">
+                    Your <span className="font-bold">{success.gb} GB</span> residential proxy is live.
+                    <span className="hidden sm:inline"> ${success.cost.toFixed(4)} USDT deducted from your balance.</span>
+                  </p>
+                  {success.orderNo && (
+                    <p className="text-xs text-white/80 mt-1 font-mono">Order #{success.orderNo}</p>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button asChild size="lg" className="bg-white text-emerald-700 hover:bg-white/90 font-semibold shadow-md">
+                    <Link to="/app/dashboard">
+                      View Proxy Credentials <ArrowRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => setSuccess(null)}
+                    className="text-white hover:bg-white/20 hover:text-white"
+                  >
+                    Buy Another
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
