@@ -148,9 +148,7 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
 
       {/* Region selector */}
       <div className="pt-2 border-t space-y-2">
-        <div className="text-xs text-muted-foreground">
-          {countryCode ? "Choose Region" : "Proxy host provider"}
-        </div>
+        <div className="text-xs text-muted-foreground">Proxy host provider</div>
         <div className="flex flex-wrap gap-2">
           {REGIONS.map((r) => {
             const active = region.code === r.code;
@@ -159,7 +157,7 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
                 key={r.code}
                 size="sm"
                 variant={active ? "default" : "outline"}
-                onClick={() => { setRegion(r); setCountryCode(null); setCountryName(null); }}
+                onClick={() => { setRegion(r); }}
               >
                 <Globe className="h-3 w-3 mr-1" />
                 {r.label}
@@ -174,21 +172,27 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
             More Country
           </Button>
         </div>
-        {countryCode && (
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="text-sm font-medium">
-              Country: {countryName} ({countryCode})
-            </span>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <span className="text-sm font-medium">
+            Country: {countryCode ? `${countryName} (${countryCode})` : "None"}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setCountryOpen(true)}
+          >
+            More Country
+          </Button>
+          {countryCode && (
             <Button
               size="sm"
-              variant="outline"
-              onClick={() => setCountryOpen(true)}
+              variant="ghost"
+              onClick={() => { setCountryCode(null); setCountryName(null); }}
             >
-              More Country
+              Clear
             </Button>
-          </div>
-        )}
-
+          )}
+        </div>
       </div>
 
       {/* Protocol selector */}
