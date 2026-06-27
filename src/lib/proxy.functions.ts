@@ -200,19 +200,48 @@ export const purchaseProxyAuto = createServerFn({ method: "POST" })
       await refund(`711proxy login failed: ${String(tokJson.message ?? `HTTP ${tokRes.status}`)}`);
     }
 
-    // 4) Create order
+    // Helper: extract human-readable error from 711proxy response
+    const extractMsg = (j: JsonRecord, status: number): string => {
+      const keys = ["message", "msg", "error", "errmsg", "err_msg", "detail", "description"];
+      for (const k of keys) {
+        const v = j[k];
+        if (typeof v === "string" && v.trim()) return v;
+      }
+      try {
+        const s = JSON.stringify(j);
+        if (s && s !== "{}") return s.slice(0, 400);
+      } catch { /* ignore */ }
+      return `HTTP ${status}`;
+    };
+
+    // 4) Create order — try expire as unix-seconds first; if 711 rejects, retry with days ("90")
     const flowBytes = (BigInt(Math.round(data.gb * 1024 * 1024 * 1024))).toString();
     const expireUnix = Math.floor(Date.now() / 1000) + 90 * 86400;
-    const orderRes = await fetch(`${BASE}/order/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ flow: flowBytes, expire: String(expireUnix) }),
-    });
-    let orderJson: JsonRecord = {};
-    try { orderJson = await orderRes.json() as JsonRecord; } catch { /* ignore */ }
-    if (!orderRes.ok || (typeof orderJson.code === "number" && orderJson.code !== 0)) {
-      await refund(`711proxy order creation failed: ${String(orderJson.message ?? `HTTP ${orderRes.status}`)}`);
+
+    const tryCreate = async (expireVal: string) => {
+      const res = await fetch(`${BASE}/order/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ flow: flowBytes, expire: expireVal }),
+      });
+      let j: JsonRecord = {};
+      try { j = await res.json() as JsonRecord; } catch { /* ignore */ }
+      const codeOk = !(typeof j.code === "number" && j.code !== 0);
+      return { ok: res.ok && codeOk, status: res.status, json: j };
+    };
+
+    let attempt = await tryCreate(String(expireUnix));
+    if (!attempt.ok) {
+      const retry = await tryCreate("90");
+      if (retry.ok) {
+        attempt = retry;
+      } else {
+        await refund(
+          `711proxy order creation failed: ${extractMsg(attempt.json, attempt.status)} | retry(days): ${extractMsg(retry.json, retry.status)}`,
+        );
+      }
     }
+    const orderJson = attempt.json;
 
     const r = ((orderJson.results as JsonRecord | undefined) ?? orderJson) as JsonRecord;
     const pick = (...keys: string[]): string | null => {
