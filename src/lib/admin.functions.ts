@@ -506,6 +506,24 @@ export const adminRejectOrder = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// --- Admin: hard-delete an order (for expired/quota-exhausted cleanup) ---
+export const adminDeleteOrder = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ orderId: z.string().uuid() }).parse(input),
+  )
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase as unknown as SbClient;
+    await assertAdmin(supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("proxy_orders")
+      .delete()
+      .eq("id", data.orderId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // --- Admin: list users with their orders ---
 export const adminListUsersWithOrders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
