@@ -73,17 +73,19 @@ function BuyProxy() {
     if (insufficient) return toast.error("Insufficient balance. Please top-up first.");
     setConfirmOpen(false);
     setBusy(true);
-    const { error } = await supabase.rpc("purchase_proxy_with_balance" as never, {
-      _gb: gb,
-      _cost: cost,
-    } as never);
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Order placed! $${cost.toFixed(4)} deducted. Awaiting admin provisioning.`);
-    qc.invalidateQueries({ queryKey: ["my-profile", user.id] });
-    qc.invalidateQueries({ queryKey: ["my-orders"] });
-    qc.invalidateQueries({ queryKey: ["my-orders-billing"] });
+    try {
+      await purchase({ data: { gb, cost } });
+      toast.success(`Proxy provisioned! $${cost.toFixed(4)} deducted. Credentials are ready in Dashboard.`);
+      qc.invalidateQueries({ queryKey: ["my-profile", user.id] });
+      qc.invalidateQueries({ queryKey: ["my-orders"] });
+      qc.invalidateQueries({ queryKey: ["my-orders-billing"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Purchase failed");
+    } finally {
+      setBusy(false);
+    }
   };
+
 
   return (
     <div className="space-y-6 max-w-3xl">
