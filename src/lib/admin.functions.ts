@@ -101,7 +101,6 @@ export const adminSaveConfig = createServerFn({ method: "POST" })
       .object({
         proxy_username: z.string().optional(),
         proxy_passwd: z.string().optional(),
-        proxy_dashboard_token: z.string().optional(),
         price_per_gb_usdt: z.number().positive().optional(),
         usdt_address: z.string().optional(),
         usdt_network: z.string().optional(),
@@ -113,9 +112,6 @@ export const adminSaveConfig = createServerFn({ method: "POST" })
     const supabase = context.supabase as unknown as SbClient;
     await assertAdmin(supabase, context.userId);
     const patch: Record<string, unknown> = { ...data, updated_at: new Date().toISOString() };
-    if (data.proxy_dashboard_token && data.proxy_dashboard_token.trim().length > 0) {
-      patch.proxy_dashboard_token_set_at = new Date().toISOString();
-    }
     const { error } = await supabase
       .from("app_config")
       .update(patch as never)
@@ -142,34 +138,6 @@ export const adminTest711 = createServerFn({ method: "POST" })
     }
   });
 
-// --- Admin: test 711 dashboard session token ---
-export const adminTestDashboardToken = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
-    z.object({ token: z.string().min(10) }).parse(input),
-  )
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ data, context }) => {
-    const supabase = context.supabase as unknown as SbClient;
-    await assertAdmin(supabase, context.userId);
-    try {
-      const res = await fetch(`${API_BASE}/user/sub/?page=1&page_size=1&status=0`, {
-        headers: {
-          Authorization: `Bearer ${data.token}`,
-          Accept: "application/json",
-          Origin: "https://dashboard.711proxy.com",
-          Referer: "https://dashboard.711proxy.com/",
-        },
-      });
-      if (!res.ok) {
-        return { ok: false as const, error: `Token rejected (${res.status}). Re-copy a fresh token from the 711proxy dashboard.` };
-      }
-      const json = (await res.json()) as JsonRecord;
-      const total = (json.results && Array.isArray(json.results)) ? json.results.length : 0;
-      return { ok: true as const, sample_count: total };
-    } catch (e) {
-      return { ok: false as const, error: e instanceof Error ? e.message : "Connection failed" };
-    }
-  });
 
 // --- Public: get pricing via SECURITY DEFINER RPC (no auth required) ---
 export const getPublicPricing = createServerFn({ method: "GET" }).handler(async () => {
