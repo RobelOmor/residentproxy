@@ -26,6 +26,7 @@ function AdminOrders() {
   const listTopups = useServerFn(adminListTopups);
   const approveTopup = useServerFn(adminApproveTopup);
   const rejectTopup = useServerFn(adminRejectTopup);
+  const deleteOrder = useServerFn(adminDeleteOrder);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
