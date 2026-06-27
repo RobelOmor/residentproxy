@@ -199,8 +199,8 @@ function AdminUsers() {
                                   </span>
                                   {o.status === "approved" && o.approved_at && (() => {
                                     const ageDays = (Date.now() - new Date(o.approved_at).getTime()) / 86400000;
-                                    if (ageDays >= 28) {
-                                      const remain = Math.max(0, 30 - ageDays);
+                                    if (ageDays >= 83) {
+                                      const remain = Math.max(0, 90 - ageDays);
                                       return (
                                         <Badge variant="destructive" className="animate-pulse">
                                           ⚠️ Expires in {remain.toFixed(0)} day{remain === 1 ? "" : "s"} — disable on 711proxy

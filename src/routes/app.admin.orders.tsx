@@ -131,7 +131,7 @@ function AdminOrders() {
   const isExpired = (o: { status: string; approved_at: string | null; un_flow: string | null }) => {
     if (o.status !== "approved") return false;
     if (o.approved_at) {
-      const exp = new Date(o.approved_at).getTime() + 30 * 86400 * 1000;
+      const exp = new Date(o.approved_at).getTime() + 90 * 86400 * 1000;
       if (exp <= Date.now()) return true;
     }
     if (o.un_flow != null) {

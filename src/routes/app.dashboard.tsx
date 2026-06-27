@@ -53,12 +53,12 @@ function formatAmount(gb: number): string {
   return gb >= 1 ? `${gb.toFixed(2)} GB` : `${Math.round(gb * 1024)} MB`;
 }
 
-function getExpiry(approvedAt: string | null): { date: Date | null; expired: boolean; label: string } {
-  if (!approvedAt) return { date: null, expired: false, label: "Validity: 30 days" };
+function getExpiry(approvedAt: string | null): { date: Date | null; expired: boolean; label: string; warn: boolean } {
+  if (!approvedAt) return { date: null, expired: false, label: "Validity: 90 days", warn: false };
   const date = new Date(approvedAt);
-  date.setDate(date.getDate() + 30);
+  date.setDate(date.getDate() + 90);
   const ms = date.getTime() - Date.now();
-  if (ms <= 0) return { date, expired: true, label: "Expired" };
+  if (ms <= 0) return { date, expired: true, label: "Expired", warn: true };
   const totalSec = Math.floor(ms / 1000);
   const days = Math.floor(totalSec / 86400);
   const hours = Math.floor((totalSec % 86400) / 3600);
@@ -68,7 +68,8 @@ function getExpiry(approvedAt: string | null): { date: Date | null; expired: boo
     days > 0
       ? `Expires in ${days}d ${hours}h ${minutes}m ${seconds}s`
       : `Expires in ${hours}h ${minutes}m ${seconds}s`;
-  return { date, expired: false, label };
+  const warn = ms <= 7 * 86400 * 1000;
+  return { date, expired: false, label, warn };
 }
 
 function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
@@ -80,7 +81,7 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
   const usedBytes = Math.max(0, Math.min(totalBytes, rawUsed));
   const remainingBytes = Math.max(0, totalBytes - usedBytes);
   const usedPct = totalBytes > 0 ? Math.min(100, (usedBytes / totalBytes) * 100) : 0;
-  const { date: expireDate, label: expireLabel } = getExpiry(o.approved_at);
+  const { date: expireDate, label: expireLabel, warn: expireWarn } = getExpiry(o.approved_at);
 
   const [region, setRegion] = useState<Region>(REGIONS[0]);
   const [countryCode, setCountryCode] = useState<string | null>("BR");
@@ -135,9 +136,10 @@ function ProxyCard({ o, expired }: { o: OrderRow; expired: boolean }) {
           </span>
         </div>
         <Progress value={usedPct} />
-        <div className="flex justify-between text-xs text-muted-foreground flex-wrap gap-1">
-          <span>{usedPct.toFixed(1)}% used</span>
-          <span>
+        <div className="flex justify-between text-xs flex-wrap gap-1">
+          <span className="text-muted-foreground">{usedPct.toFixed(1)}% used</span>
+          <span className={expireWarn && !expired ? "text-destructive font-semibold animate-pulse" : "text-muted-foreground"}>
+            {expireWarn && !expired ? "⚠️ " : ""}
             {expireLabel}
             {expireDate ? ` · ${expireDate.toLocaleDateString()}` : ""}
           </span>
@@ -390,7 +392,7 @@ function UserDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Active Proxies</CardTitle>
-          <CardDescription>Usage and validity (30 days from approval). Auto-refreshes on load.</CardDescription>
+          <CardDescription>Usage and validity (90 days from approval). Warning shows 7 days before expiry. Auto-refreshes on load.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {active.length === 0 && (
@@ -403,7 +405,7 @@ function UserDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Expired Proxies</CardTitle>
-          <CardDescription>Proxies past the 30-day validity window.</CardDescription>
+          <CardDescription>Proxies past the 90-day validity window or with exhausted quota.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {expired.length === 0 && (
