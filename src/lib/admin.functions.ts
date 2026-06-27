@@ -101,7 +101,6 @@ export const adminSaveConfig = createServerFn({ method: "POST" })
       .object({
         proxy_username: z.string().optional(),
         proxy_passwd: z.string().optional(),
-        proxy_dashboard_token: z.string().optional(),
         price_per_gb_usdt: z.number().positive().optional(),
         usdt_address: z.string().optional(),
         usdt_network: z.string().optional(),
@@ -113,9 +112,6 @@ export const adminSaveConfig = createServerFn({ method: "POST" })
     const supabase = context.supabase as unknown as SbClient;
     await assertAdmin(supabase, context.userId);
     const patch: Record<string, unknown> = { ...data, updated_at: new Date().toISOString() };
-    if (data.proxy_dashboard_token && data.proxy_dashboard_token.trim().length > 0) {
-      patch.proxy_dashboard_token_set_at = new Date().toISOString();
-    }
     const { error } = await supabase
       .from("app_config")
       .update(patch as never)
@@ -142,34 +138,6 @@ export const adminTest711 = createServerFn({ method: "POST" })
     }
   });
 
-// --- Admin: test 711 dashboard session token ---
-export const adminTestDashboardToken = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
-    z.object({ token: z.string().min(10) }).parse(input),
-  )
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ data, context }) => {
-    const supabase = context.supabase as unknown as SbClient;
-    await assertAdmin(supabase, context.userId);
-    try {
-      const res = await fetch(`${API_BASE}/user/sub/?page=1&page_size=1&status=0`, {
-        headers: {
-          Authorization: `Bearer ${data.token}`,
-          Accept: "application/json",
-          Origin: "https://dashboard.711proxy.com",
-          Referer: "https://dashboard.711proxy.com/",
-        },
-      });
-      if (!res.ok) {
-        return { ok: false as const, error: `Token rejected (${res.status}). Re-copy a fresh token from the 711proxy dashboard.` };
-      }
-      const json = (await res.json()) as JsonRecord;
-      const total = (json.results && Array.isArray(json.results)) ? json.results.length : 0;
-      return { ok: true as const, sample_count: total };
-    } catch (e) {
-      return { ok: false as const, error: e instanceof Error ? e.message : "Connection failed" };
-    }
-  });
 
 // --- Public: get pricing via SECURITY DEFINER RPC (no auth required) ---
 export const getPublicPricing = createServerFn({ method: "GET" }).handler(async () => {
@@ -388,58 +356,49 @@ export const adminApproveOrder = createServerFn({ method: "POST" })
     if (!order) throw new Error("Order not found");
     if (order.status !== "pending") throw new Error(`Order already ${order.status}`);
 
-    // Get dashboard token (required to verify sub-user existence on 711proxy)
+    // Get enterprise creds and mint a fresh token (no dashboard cookie needed)
     const { data: cfg } = await supabase
       .from("app_config")
-      .select("proxy_dashboard_token")
+      .select("proxy_username, proxy_passwd")
       .eq("id", 1)
       .maybeSingle();
-    const dashToken = cfg?.proxy_dashboard_token?.trim();
-    if (!dashToken) {
-      throw new Error("711proxy Dashboard Token is not set in admin config — cannot verify sub-user.");
+    const eu = cfg?.proxy_username?.trim();
+    const ep = cfg?.proxy_passwd?.trim();
+    if (!eu || !ep) {
+      throw new Error("711proxy enterprise credentials are not set in admin Config — cannot verify order.");
     }
+
+    let token: string;
+    try { token = await fetch711Token(eu, ep); }
+    catch (e) { throw new Error(`711proxy login failed: ${e instanceof Error ? e.message : String(e)}`); }
 
     const suname = (data.suname ?? order.proxy_username ?? data.orderNo).trim();
 
-    // Verify sub-user exists on 711proxy with sufficient capacity
-    let sub: JsonRecord | null;
-    try {
-      sub = await fetch711SubUserByName(dashToken, suname);
-    } catch (e) {
-      throw new Error(`711proxy verification failed: ${e instanceof Error ? e.message : String(e)}. Token may be expired — refresh it in Admin → Config.`);
-    }
-    if (!sub) {
-      throw new Error(`Sub-user "${suname}" not found on 711proxy. Create it first on the 711proxy dashboard with the suggested User/Pass/MB-limit, then approve.`);
+    // Verify via enterprise order info API
+    const info = await fetch711OrderInfo(token, data.orderNo);
+    const unFlow = info.un_flow != null ? String(info.un_flow) : null;
+    const unFlowUsed = info.un_flow_used != null ? String(info.un_flow_used) : "0";
+    if (unFlow == null) {
+      throw new Error(`711proxy returned no traffic info for order_no "${data.orderNo}". Check the order_no and retry.`);
     }
 
-    const requiredBytes = BigInt(Math.round(Number(order.gb_amount) * 1024 * 1024 * 1024));
-    const allocatedBytes = parseTrafficTextToBytes(sub.traff_flow_top);
-    const usedBytes = parseTrafficTextToBytes(sub.traff_used) ?? 0n;
-
-    if (allocatedBytes != null && allocatedBytes < requiredBytes) {
-      const allocMb = Number(allocatedBytes / 1024n / 1024n);
-      const reqMb = Number(requiredBytes / 1024n / 1024n);
-      throw new Error(`Sub-user "${suname}" has only ${allocMb} MB allocated but order needs ${reqMb} MB. Increase the limit on 711proxy and retry.`);
-    }
-
-    const remainingBytes = allocatedBytes == null ? null : allocatedBytes > usedBytes ? allocatedBytes - usedBytes : 0n;
-    const passwd = data.passwd ?? order.proxy_passwd ?? (typeof sub.passwd === "string" ? sub.passwd : undefined);
-    const expire = sub.expire != null ? String(sub.expire) : null;
+    const passwd = data.passwd ?? order.proxy_passwd ?? (typeof info.un_passwd === "string" ? info.un_passwd : null);
+    const expire = info.expire != null ? String(info.expire) : null;
 
     const { error } = await supabase.rpc("admin_approve_order_manual" as never, {
       _order_id: data.orderId,
       _order_no: data.orderNo,
       _suname: suname,
-      _passwd: passwd ?? null,
-      _un_flow: (remainingBytes ?? requiredBytes).toString(),
-      _un_flow_used: usedBytes.toString(),
+      _passwd: passwd,
+      _un_flow: unFlow,
+      _un_flow_used: unFlowUsed,
       _expire: expire,
     } as never);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
-// --- User: refresh own orders' usage from 711proxy live API ---
+// --- User: refresh own orders' usage from 711proxy live API (uses enterprise creds) ---
 export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -453,28 +412,32 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
     const list = (orders ?? []).filter((o) => o.order_no || o.proxy_username);
     if (list.length === 0) return { ok: true, refreshed: 0 };
 
-    // Read 711 dashboard token via service-role client (token never leaves the server,
-    // and the get_dashboard_token RPC is now admin-only).
+    // Mint a fresh enterprise token (no dashboard cookie / expiry issues)
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: cfgRow, error: cfgErr } = await supabaseAdmin
       .from("app_config")
-      .select("proxy_dashboard_token")
+      .select("proxy_username, proxy_passwd")
       .eq("id", 1)
       .maybeSingle();
-    if (cfgErr) throw new Error(`Failed to read dashboard token: ${cfgErr.message}`);
-    const dashToken = (cfgRow?.proxy_dashboard_token ?? "").trim();
-    if (!dashToken) {
-      throw new Error("Live usage sync isn't set up yet — admin needs to paste a 711proxy dashboard token in Configuration.");
+    if (cfgErr) throw new Error(`Failed to read config: ${cfgErr.message}`);
+    const eu = cfgRow?.proxy_username?.trim();
+    const ep = cfgRow?.proxy_passwd?.trim();
+    if (!eu || !ep) {
+      throw new Error("Live usage sync needs 711proxy enterprise credentials set in admin Config.");
     }
+    let token: string;
+    try { token = await fetch711Token(eu, ep); }
+    catch (e) { throw new Error(`711proxy login failed: ${e instanceof Error ? e.message : String(e)}`); }
 
     let count = 0;
     for (const o of list) {
       try {
-        const snapshot = await fetch711UsageSnapshot(dashToken, o.order_no ?? o.proxy_username ?? "", o.proxy_username);
-        if (!snapshot) continue;
-        const unFlow = snapshot.unFlow;
-        const unFlowUsed = snapshot.unFlowUsed;
-        const expire = snapshot.expire;
+        const orderNo = (o.order_no ?? o.proxy_username ?? "").trim();
+        if (!orderNo) continue;
+        const info = await fetch711OrderInfo(token, orderNo);
+        const unFlow = info.un_flow != null ? String(info.un_flow) : null;
+        const unFlowUsed = info.un_flow_used != null ? String(info.un_flow_used) : null;
+        const expire = info.expire != null ? String(info.expire) : null;
         if (unFlow == null && unFlowUsed == null) continue;
         const { error: uerr } = await supabase.rpc("update_my_order_usage" as never, {
           _order_id: o.id,
@@ -489,6 +452,7 @@ export const refreshMyOrdersUsage = createServerFn({ method: "POST" })
     }
     return { ok: true, refreshed: count };
   });
+
 
 // --- Admin: reject order (auto-refunds balance if paid from balance) ---
 export const adminRejectOrder = createServerFn({ method: "POST" })
