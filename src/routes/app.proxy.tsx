@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Database, Sparkles } from "lucide-react";
+import { Database, Sparkles, PartyPopper, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/proxy")({
   component: BuyProxy,
@@ -46,6 +46,7 @@ function BuyProxy() {
   const [gb, setGb] = useState(1);
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [success, setSuccess] = useState<null | { gb: number; cost: number; orderNo: string }>(null);
 
 
   const { data: profile } = useQuery({
@@ -74,8 +75,12 @@ function BuyProxy() {
     setConfirmOpen(false);
     setBusy(true);
     try {
-      await purchase({ data: { gb, cost } });
-      toast.success(`Proxy provisioned! $${cost.toFixed(4)} deducted. Credentials are ready in Dashboard.`);
+      const res = await purchase({ data: { gb, cost } });
+      setSuccess({ gb, cost, orderNo: res?.orderNo ?? "" });
+      toast.success("🎉 Proxy provisioned successfully!", {
+        description: `${gb} GB activated · $${cost.toFixed(4)} deducted. Credentials are ready in Dashboard.`,
+        duration: 6000,
+      });
       qc.invalidateQueries({ queryKey: ["my-profile", user.id] });
       qc.invalidateQueries({ queryKey: ["my-orders"] });
       qc.invalidateQueries({ queryKey: ["my-orders-billing"] });
