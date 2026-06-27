@@ -42,9 +42,11 @@ function pricePerGB(gb: number): number {
 function BuyProxy() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const purchase = useServerFn(purchaseProxyAuto);
   const [gb, setGb] = useState(1);
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
 
   const { data: profile } = useQuery({
     queryKey: ["my-profile", user?.id],
