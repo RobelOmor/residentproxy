@@ -257,23 +257,44 @@ function AdminOrders() {
                 <TableHead>Proxy User</TableHead>
                 <TableHead>Host:Port</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {others.map((o) => (
-                <TableRow key={o.id}>
-                  <TableCell>{o.user_email}</TableCell>
-                  <TableCell>
-                    <Badge variant={o.status === "approved" ? "default" : "destructive"}>{o.status}</Badge>
-                  </TableCell>
-                  <TableCell>{Number(o.gb_amount) >= 1 ? `${Number(o.gb_amount).toFixed(2)} GB` : `${Math.round(Number(o.gb_amount) * 1024)} MB`}</TableCell>
-                  <TableCell className="font-mono text-xs">{o.proxy_username ?? "-"}</TableCell>
-                  <TableCell className="font-mono text-xs">{o.host ? `${o.host}:${o.port}` : "-"}</TableCell>
-                  <TableCell className="text-xs">{new Date(o.created_at).toLocaleString()}</TableCell>
-                </TableRow>
-              ))}
+              {others.map((o) => {
+                const expired = isExpired(o);
+                return (
+                  <TableRow
+                    key={o.id}
+                    className={expired ? "bg-destructive/10 hover:bg-destructive/15" : undefined}
+                  >
+                    <TableCell className={expired ? "text-destructive font-medium" : undefined}>{o.user_email}</TableCell>
+                    <TableCell>
+                      {expired ? (
+                        <Badge variant="destructive">expired</Badge>
+                      ) : (
+                        <Badge variant={o.status === "approved" ? "default" : "destructive"}>{o.status}</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className={expired ? "text-destructive" : undefined}>{Number(o.gb_amount) >= 1 ? `${Number(o.gb_amount).toFixed(2)} GB` : `${Math.round(Number(o.gb_amount) * 1024)} MB`}</TableCell>
+                    <TableCell className={`font-mono text-xs ${expired ? "text-destructive" : ""}`}>{o.proxy_username ?? "-"}</TableCell>
+                    <TableCell className={`font-mono text-xs ${expired ? "text-destructive" : ""}`}>{o.host ? `${o.host}:${o.port}` : "-"}</TableCell>
+                    <TableCell className={`text-xs ${expired ? "text-destructive" : ""}`}>{new Date(o.created_at).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant={expired ? "destructive" : "ghost"}
+                        disabled={busyId === o.id}
+                        onClick={() => handleDelete(o.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {!others.length && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No completed orders</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No completed orders</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
