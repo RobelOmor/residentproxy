@@ -12,12 +12,6 @@ export type JsonValue =
 
 type JsonRecord = { [key: string]: JsonValue };
 
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
 
 const BASE = "https://server.711proxy.com/eapi";
 
