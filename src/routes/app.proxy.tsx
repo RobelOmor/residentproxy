@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { purchaseProxyAuto } from "@/lib/proxy.functions";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,9 +42,11 @@ function pricePerGB(gb: number): number {
 function BuyProxy() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const purchase = useServerFn(purchaseProxyAuto);
   const [gb, setGb] = useState(1);
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
 
   const { data: profile } = useQuery({
     queryKey: ["my-profile", user?.id],
@@ -68,17 +73,19 @@ function BuyProxy() {
     if (insufficient) return toast.error("Insufficient balance. Please top-up first.");
     setConfirmOpen(false);
     setBusy(true);
-    const { error } = await supabase.rpc("purchase_proxy_with_balance" as never, {
-      _gb: gb,
-      _cost: cost,
-    } as never);
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Order placed! $${cost.toFixed(4)} deducted. Awaiting admin provisioning.`);
-    qc.invalidateQueries({ queryKey: ["my-profile", user.id] });
-    qc.invalidateQueries({ queryKey: ["my-orders"] });
-    qc.invalidateQueries({ queryKey: ["my-orders-billing"] });
+    try {
+      await purchase({ data: { gb, cost } });
+      toast.success(`Proxy provisioned! $${cost.toFixed(4)} deducted. Credentials are ready in Dashboard.`);
+      qc.invalidateQueries({ queryKey: ["my-profile", user.id] });
+      qc.invalidateQueries({ queryKey: ["my-orders"] });
+      qc.invalidateQueries({ queryKey: ["my-orders-billing"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Purchase failed");
+    } finally {
+      setBusy(false);
+    }
   };
+
 
   return (
     <div className="space-y-6 max-w-3xl">

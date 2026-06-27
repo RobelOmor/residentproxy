@@ -281,15 +281,20 @@ function AdminOrders() {
                     <TableCell className={`font-mono text-xs ${expired ? "text-destructive" : ""}`}>{o.host ? `${o.host}:${o.port}` : "-"}</TableCell>
                     <TableCell className={`text-xs ${expired ? "text-destructive" : ""}`}>{new Date(o.created_at).toLocaleString()}</TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant={expired ? "destructive" : "ghost"}
-                        disabled={busyId === o.id}
-                        onClick={() => handleDelete(o.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {expired ? (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={busyId === o.id}
+                          onClick={() => handleDelete(o.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
+
                   </TableRow>
                 );
               })}
