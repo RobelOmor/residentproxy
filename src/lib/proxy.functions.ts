@@ -202,7 +202,7 @@ export const purchaseProxyAuto = createServerFn({ method: "POST" })
 
     // 4) Create order
     const flowBytes = (BigInt(Math.round(data.gb * 1024 * 1024 * 1024))).toString();
-    const expireUnix = Math.floor(Date.now() / 1000) + 30 * 86400;
+    const expireUnix = Math.floor(Date.now() / 1000) + 90 * 86400;
     const orderRes = await fetch(`${BASE}/order/`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
