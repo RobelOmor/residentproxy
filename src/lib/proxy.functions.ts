@@ -120,7 +120,7 @@ export const addWhitelist = createServerFn({ method: "POST" })
 // Flow:
 //   1. RPC purchase_proxy_with_balance (deducts balance, creates pending order)
 //   2. Mint a fresh token from stored enterprise creds (no expiry issue)
-//   3. POST /eapi/order/ with flow bytes + expire (30d)
+//   3. POST /eapi/order/ with flow bytes + expire (90d)
 //   4. On success: supabaseAdmin updates the order -> approved with real proxy details
 //   5. On failure: supabaseAdmin refunds the balance & deletes the pending order
 export const purchaseProxyAuto = createServerFn({ method: "POST" })
@@ -218,6 +218,17 @@ export const purchaseProxyAuto = createServerFn({ method: "POST" })
     const flowBytes = (BigInt(Math.round(data.gb * 1024 * 1024 * 1024))).toString();
     const expireUnix = Math.floor(Date.now() / 1000) + 90 * 86400;
 
+    const isSuccessfulOrderResponse = (j: JsonRecord): boolean => {
+      const code = j.code;
+      const error = j.error;
+      const hasCredentials = Boolean(j.username || j.un_user || (j.results as JsonRecord | undefined)?.username || (j.results as JsonRecord | undefined)?.un_user);
+
+      if (error) return false;
+      if (typeof code === "number") return (code === 0 || code === 200) && hasCredentials;
+      if (typeof code === "string") return (code === "0" || code === "200") && hasCredentials;
+      return hasCredentials;
+    };
+
     const tryCreate = async (expireVal: string) => {
       const res = await fetch(`${BASE}/order/`, {
         method: "POST",
@@ -226,8 +237,7 @@ export const purchaseProxyAuto = createServerFn({ method: "POST" })
       });
       let j: JsonRecord = {};
       try { j = await res.json() as JsonRecord; } catch { /* ignore */ }
-      const codeOk = !(typeof j.code === "number" && j.code !== 0);
-      return { ok: res.ok && codeOk, status: res.status, json: j };
+      return { ok: res.ok && isSuccessfulOrderResponse(j), status: res.status, json: j };
     };
 
     let attempt = await tryCreate(String(expireUnix));
